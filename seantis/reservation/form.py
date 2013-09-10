@@ -1,28 +1,26 @@
 from datetime import datetime
-from functools import wraps
 
+from Products.CMFPlone.utils import safe_unicode
 from five import grok
+from functools import wraps
 from plone.directives import form
-from zope.component import getMultiAdapter
-from z3c.form import interfaces
-from z3c.form import field
-from z3c.form.group import GroupForm
-
+from plone.memoize import instance
+from plone.memoize import view
+from plone.z3cform.fieldsets import utils as z3cutils
 from sqlalchemy import null
+from z3c.form import field
+from z3c.form import interfaces
+from z3c.form.group import GroupForm
+from z3c.form.interfaces import IDataConverter
+from zope.browserpage.viewpagetemplatefile import ViewPageTemplateFile
+from zope.component import getMultiAdapter
+from zope.component.hooks import getSite
+from zope.i18n import translate
 
 from seantis.reservation import _
 from seantis.reservation import utils
-from seantis.reservation.models import Allocation, Reservation
 from seantis.reservation.interfaces import IResourceBase
-
-from plone.memoize import view
-
-from zope.browserpage.viewpagetemplatefile import ViewPageTemplateFile
-from plone.z3cform.fieldsets import utils as z3cutils
-from zope.component.hooks import getSite
-from zope.i18n import translate
-from plone.memoize import instance
-from Products.CMFPlone.utils import safe_unicode
+from seantis.reservation.models import Allocation, Reservation
 
 
 def extract_action_data(fn):
@@ -147,7 +145,7 @@ class ResourceBaseForm(GroupForm, form.Form):
         if not w:
             return
 
-        converter = getMultiAdapter((f, w))
+        converter = getMultiAdapter((f, w), interface=IDataConverter)
 
         # z3c forms will work with all the widgets except radio and checkboxes
         # the docs hint at differences, but I can for the
@@ -186,7 +184,7 @@ class ResourceBaseForm(GroupForm, form.Form):
 
         other_defaults = self.defaults()
         for k, v in other_defaults.items():
-            assert self.set_widget(k, v), "invalid default field %s" % k
+            self.set_widget(k, v), "invalid default field %s" % k
 
     def redirect_to_context(self):
         """ Redirect to the url of the resource. """
@@ -232,7 +230,8 @@ class ResourceBaseForm(GroupForm, form.Form):
         elif self.widgets and 'id' in self.widgets:
             field = self.get_field('id')
             widget = self.get_widget('id')
-            converter = getMultiAdapter((field, widget))
+            converter = getMultiAdapter((field, widget),
+                                        interface=IDataConverter)
             value = converter.toFieldValue(widget.value)
 
         return utils.request_id_as_int(value)
@@ -425,8 +424,8 @@ class ReservationListView(ReservationDataView):
     The property reservation can be implemented if it is desired to only show
     one reservation.
 
-    The property start and end can be implemented if it is desired to only
-    show a subset of the reserved slots
+    The property timespan_start and timespan_end can be implemented if it is
+    desired to only show a subset of the reserved slots
 
     Use the following macro to display:
 
@@ -447,7 +446,10 @@ class ReservationListView(ReservationDataView):
         can be returned.
 
         """
-        return hasattr(self, 'group') and utils.string_uuid(self.group) or u''
+        if hasattr(self, 'group'):
+            if utils.is_uuid(self.group):
+                return utils.string_uuid(self.group)
+        return u''
 
     @property
     def hide_waitinglist(self):
@@ -457,7 +459,6 @@ class ReservationListView(ReservationDataView):
         of switching).
 
         """
-
         all_allocations = self.all_allocations()
         manual_allocations = all_allocations.filter(
             Allocation.approve_manually == True
@@ -602,5 +603,12 @@ class ReservationListView(ReservationDataView):
     @utils.memoize
     def approved_reservations(self):
         """ Returns a dictionary of reservations, keyed by reservation uid. """
-
         return self.reservations(status=u'approved')
+
+    @property
+    def timespan_start(self):
+        return None
+
+    @property
+    def timespan_end(self):
+        return None

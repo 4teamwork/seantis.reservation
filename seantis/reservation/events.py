@@ -1,14 +1,18 @@
 from zope.interface import implements
 
 from seantis.reservation.interfaces import (
-    IResourceViewedEvent,
-    IReservationBaseEvent,
-    IReservationMadeEvent,
     IReservationApprovedEvent,
+    IReservationBaseEvent,
     IReservationDeniedEvent,
+    IReservationMadeEvent,
     IReservationRevokedEvent,
-    IReservationsConfirmedEvent
+    IReservationSlotsCreatedEvent,
+    IReservationsConfirmedEvent,
+    IReservationSlotsRemovedEvent,
+    IResourceViewedEvent,
 )
+from seantis.reservation.interfaces import IReservationSlotsUpdatedEvent
+from seantis.reservation.interfaces import IReservationUpdatedEvent
 
 
 class ResourceViewedEvent(object):
@@ -52,3 +56,31 @@ class ReservationsConfirmedEvent(object):
     def __init__(self, reservations, language):
         self.reservations = reservations
         self.language = language
+
+
+class ReservationSlotsCreatedEvent(ReservationBaseEvent):
+    implements(IReservationSlotsCreatedEvent)
+
+
+class ReservationSlotsRemovedEvent(ReservationBaseEvent):
+    implements(IReservationSlotsRemovedEvent)
+
+    def __init__(self, reservation, language, dates):
+        super(ReservationSlotsRemovedEvent, self).__init__(reservation,
+                                                           language)
+        self.dates = dates
+
+
+class ReservationSlotsUpdatedEvent(ReservationBaseEvent):
+
+    implements(IReservationSlotsUpdatedEvent)
+
+
+class ReservationUpdatedEvent(ReservationBaseEvent):
+
+    implements(IReservationUpdatedEvent)
+
+    def __init__(self, reservation, language, old_data, time_changed):
+        super(ReservationUpdatedEvent, self).__init__(reservation, language)
+        self.old_data = old_data
+        self.time_changed = time_changed

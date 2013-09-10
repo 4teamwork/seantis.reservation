@@ -5,6 +5,7 @@ import collections
 import functools
 import isodate
 import base64
+import sys
 
 from datetime import datetime, timedelta, date, time as datetime_time
 from urlparse import urljoin
@@ -37,6 +38,7 @@ from Products.CMFPlone.interfaces import IPloneSiteRoot
 from seantis.reservation import error
 from seantis.reservation import _
 from Products.CMFPlone.utils import safe_unicode
+from dateutil.rrule import rrulestr
 
 
 try:
@@ -413,7 +415,9 @@ def handle_exception(ex, message_handler=None):
     msg = error.errormap.get(type(ex))
 
     if not msg:
-        raise ex
+        # preserve stack trace when raising
+        exc_info = sys.exc_info()
+        raise exc_info[0], exc_info[1], exc_info[2]
 
     if message_handler:
         message_handler(msg)
@@ -891,6 +895,29 @@ class EventUrls(object):
         self.move = url
 
 
+def get_dates(data, is_whole_day=False):
+    """ Return a list with date tuples depending on the data entered by the
+    user, using rrule if requested.
+
+    """
+
+    start, end = get_date_range(
+        data['day'], data['start_time'], data['end_time']
+    )
+    if is_whole_day:
+        start, end = align_range_to_day(start, end)
+
+    if not data['recurrence']:
+        return ((start, end))
+
+    rule = rrulestr(data['recurrence'], dtstart=start)
+
+    event = lambda d: \
+        get_date_range(d, data['start_time'], data['end_time'])
+
+    return [event(d) for d in rule]
+
+
 def get_date_range(day, start_time, end_time):
     """Returns the date-range of a date a start and an end time."""
     start = datetime.combine(day, start_time)
@@ -1042,11 +1069,22 @@ def align_range_to_day(start, end):
     return align_date_to_day(start, 'down'), align_date_to_day(end, 'up')
 
 
-def display_date(start, end):
-    """ Formates the date range given for display. """
+def as_machine_date(start, end):
+    """ Returns start as is and the end set to the last microsecond before
+    the actual end-date. This ensures that overlap-checks don't fail.
+
+    """
 
     if end.microsecond != 999999:
         end -= timedelta(microseconds=1)
+
+    return start, end
+
+
+def display_date(start, end):
+    """ Formates the date range given for display. """
+
+    start, end = as_machine_date(start, end)
 
     if (start, end) == align_range_to_day(start, end):
         if start.date() == end.date():

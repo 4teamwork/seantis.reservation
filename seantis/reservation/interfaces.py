@@ -756,6 +756,17 @@ class IReservation(Interface):
         required=True
     )
 
+    description = schema.TextLine(
+         title=_(u'Description'),
+         description=_('Visible on the calendar'),
+         required=False,
+    )
+
+    recurrence = schema.Text(
+            title=_(u'Recurrence'),
+            required=False,
+    )
+
 
 class IReservationIdForm(Interface):
     """ Describes a form with a hidden reservation-id field. Use with
@@ -765,6 +776,14 @@ class IReservationIdForm(Interface):
         title=_(u'Reservation'),
         required=False
     )
+
+
+class IAllocationIdForm(IReservationIdForm):
+    """ Describes a form with a hidden reservation-id and allocation-id field.
+    Use with seantis.reservation.reserve.ReservationRemovalForm. """
+
+    allocation_id = schema.Int(title=_("Allocation Id"),
+                               required=False)
 
 
 class IGroupReservation(Interface):
@@ -854,3 +873,25 @@ class IReservationsConfirmedEvent(Interface):
     """
     reservations = Attribute("The list of reservations the user confirmed")
     language = Attribute("language of the site or current request")
+
+
+class IReservationSlotsCreatedEvent(IReservationBaseEvent):
+    """Event triggered when all reservations slots have been created."""
+
+
+class IReservationSlotsRemovedEvent(IReservationBaseEvent):
+    """Event triggered when reservation slots are removed."""
+
+    dates = Attribute("The concerned dates")
+
+
+class IReservationSlotsUpdatedEvent(IReservationBaseEvent):
+    """Triggered when reserved slots for a reservation are updated."""
+
+
+class IReservationUpdatedEvent(IReservationBaseEvent):
+    """Triggered when a reservation is updated."""
+
+    old_data = Attribute("Old reservation data")
+    time_changed = Attribute("Boolean indicating whether reservation time "
+                             "has changed")

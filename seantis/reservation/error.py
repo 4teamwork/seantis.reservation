@@ -54,6 +54,10 @@ class ReservationTooLong(ReservationError):
     pass
 
 
+class ReservationOutOfBounds(ReservationError):
+    pass
+
+
 class ThrottleBlock(ReservationError):
     pass
 
@@ -83,6 +87,18 @@ class QuotaImpossible(ReservationError):
 
 
 class InvalidAllocationError(ReservationError):
+    pass
+
+
+class UnblockableAlreadyReservedError(ReservationError):
+    pass
+
+
+class NoRecurringReservationError(ReservationError):
+    pass
+
+
+class NoReservedSlotsLeftError(ReservationError):
     pass
 
 
@@ -120,6 +136,9 @@ errormap = {
     ReservationParametersInvalid:
     _(u'The given reservation paramters are invalid.'),
 
+    ReservationOutOfBounds:
+    _(u'Reservation out of bounds'),
+
     InvalidReservationToken:
     _(u'The given reservation token is invalid.'),
 
@@ -138,8 +157,18 @@ errormap = {
 
     InvalidAllocationError:
     _(u'The resulting allocation would be invalid'),
+
+    UnblockableAlreadyReservedError:
+    _(u"Can't block period because a reservation already exists."),
+
+    NoRecurringReservationError:
+    _('This is not a recurring reservation'),
+
+    NoReservedSlotsLeftError:
+    _('No reserved slots would be left after this operation')
 }
 
 if HAS_PSYCOPG2:
-    errormap[TransactionRollbackError] =  _(u'The resource is being edited by '
-                                            'someone else. Please try again.')
+    errormap[TransactionRollbackError] = _(
+        u'The resource is being edited by someone else. Please try again.'
+    )

@@ -1,6 +1,8 @@
 from itertools import groupby
 
 import logging
+from Products.CMFPlone.utils import safe_unicode
+from seantis.reservation.interfaces import IReservationUpdatedEvent
 log = logging.getLogger('seantis.reservation')
 
 from five import grok
@@ -15,6 +17,7 @@ from plone.memoize import view
 from Products.CMFCore.interfaces import IFolderish
 from Products.CMFCore.utils import getToolByName
 from z3c.form import button
+from zope.i18n import translate
 
 from seantis.reservation.form import ReservationDataView
 from seantis.reservation.reserve import ReservationUrls
@@ -37,16 +40,18 @@ def on_reservations_confirmed(event):
     if settings.get('send_email_to_reservees', True):
         send_reservations_confirmed(event.reservations, event.language)
 
+    send_notification = settings.get('send_email_to_managers', True)
+    send_approval = settings.get('send_approval_email_to_managers', True)
     # send many mails to the admins
-    if settings.get('send_email_to_managers', True):
+    if send_notification or send_approval:
         for reservation in event.reservations:
 
-            if reservation.autoapprovable:
+            if reservation.autoapprovable and send_notification:
                 send_reservation_mail(
                     reservation,
                     'reservation_made', event.language, to_managers=True
                 )
-            else:
+            elif not reservation.autoapprovable and send_approval:
                 send_reservation_mail(
                     reservation,
                     'reservation_pending', event.language, to_managers=True
@@ -82,6 +87,24 @@ def on_reservation_revoked(event):
         event.reservation, 'reservation_revoked', event.language,
         to_managers=False, revocation_reason=event.reason
     )
+
+
+@grok.subscribe(IReservationUpdatedEvent)
+def on_reservation_updated(event):
+    if not event.time_changed and event.old_data == event.reservation.data:
+        return
+
+    if settings.get('send_email_to_reservees', True):
+        send_reservation_mail(
+            event.reservation, 'reservation_changed', event.language,
+            to_managers=False
+        )
+
+    if settings.get('send_email_to_managers', True):
+        send_reservation_mail(
+            event.reservation, 'reservation_updated', event.language,
+            to_managers=True
+        )
 
 
 class EmailTemplate(Item):
@@ -166,7 +189,6 @@ def get_email_content(context, email_type, language):
 
 
 def send_reservations_confirmed(reservations, language):
-
     sender = utils.get_site_email_sender()
 
     if not sender:
@@ -224,7 +246,8 @@ def send_reservations_confirmed(reservations, language):
 
 
 def send_reservation_mail(reservation, email_type, language,
-                          to_managers=False, revocation_reason=u''):
+                          to_managers=False, revocation_reason=u'',
+                          bcc=tuple()):
 
     resource = utils.get_resource_by_uuid(reservation.resource)
 
@@ -257,6 +280,7 @@ def send_reservation_mail(reservation, email_type, language,
             resource, reservation,
             sender=sender,
             recipient=recipient,
+            bcc=bcc,
             subject=subject,
             body=body,
             revocation_reason=revocation_reason
@@ -277,6 +301,7 @@ class ReservationMail(ReservationDataView, ReservationUrls):
     body = u''
     reservations = u''
     revocation_reason = u''
+    bcc = tuple()
 
     def __init__(self, resource, reservation, **kwargs):
         for k, v in kwargs.items():
@@ -298,7 +323,7 @@ class ReservationMail(ReservationDataView, ReservationUrls):
 
         # a list of reservations
         if is_needed('reservations'):
-            p['reservations'] = '\n'.join(self.reservations)
+            p['reservations'] = u'\n'.join(self.reservations)
 
         # a list of dates
         if is_needed('dates'):
@@ -307,23 +332,27 @@ class ReservationMail(ReservationDataView, ReservationUrls):
             for start, end in dates:
                 lines.append(utils.display_date(start, end))
 
-            p['dates'] = '\n'.join(lines)
+            p['dates'] = u'\n'.join(lines)
 
         # tabbed reservation data
         if is_needed('data'):
             data = reservation.data
             lines = []
+
             for key in self.sorted_info_keys(data):
                 interface = data[key]
 
-                lines.append(interface['desc'])
+                lines.append(safe_unicode(interface['desc']))
                 for value in self.sorted_values(interface['values']):
-                    lines.append(
-                        '\t' + value['desc'] + ': ' +
-                        unicode(self.display_info(value['value']))
-                    )
+                    description = translate(value['desc'],
+                                            context=resource.REQUEST,
+                                            domain='seantis.reservation')
+                    description = safe_unicode(description)
+                    val = safe_unicode(self.display_info(value['value']))
+                    lines.append((u'\t%s: %s' % (description, val))
+                )
 
-            p['data'] = '\n'.join(lines)
+            p['data'] = u'\n'.join(lines)
 
         # approval link
         if is_needed('approval_link'):
@@ -346,13 +375,15 @@ class ReservationMail(ReservationDataView, ReservationUrls):
         self.parameters = p
 
     def as_string(self):
+
         subject = self.subject % self.parameters
         body = self.body % self.parameters
-        mail = create_email(self.sender, self.recipient, subject, body)
+        mail = create_email(self.sender, self.recipient, self.bcc,
+                            subject, body)
         return mail.as_string()
 
 
-def create_email(sender, recipient, subject, body):
+def create_email(sender, recipient, bcc, subject, body):
     """Create an email message.
 
     All arguments should be Unicode strings (plain ASCII works as well).
@@ -381,10 +412,20 @@ def create_email(sender, recipient, subject, body):
     sender_addr = sender_addr.encode('ascii')
     recipient_addr = recipient_addr.encode('ascii')
 
+    bcc_pairs = []
+    for bcc_mail in bcc:
+        bcc_name, bcc_addr = parseaddr(bcc_mail)
+        bcc_name = str(Header(unicode(bcc_name), header_charset))
+        bcc_addr = bcc_addr.encode('ascii')
+        bcc_pairs.append((bcc_name, bcc_addr))
+
     # Create the message ('plain' stands for Content-Type: text/plain)
     msg = MIMEText(body.encode(body_charset), 'plain', body_charset)
     msg['From'] = formataddr((sender_name, sender_addr))
     msg['To'] = formataddr((recipient_name, recipient_addr))
+    msg['Bcc'] = ', '.join(formataddr((bcc_name, bcc_addr))
+                                     for bcc_name, bcc_addr
+                                     in bcc_pairs)
     msg['Subject'] = Header(unicode(subject), header_charset)
 
     return msg

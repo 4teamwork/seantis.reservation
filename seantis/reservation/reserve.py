@@ -1,27 +1,25 @@
 # -*- coding: utf-8 -*-
 
-from logging import getLogger
-from zope.component.hooks import getSite
-log = getLogger('seantis.reservation')
-
-from datetime import time
 from DateTime import DateTime
+from datetime import time
+from datetime import timedelta
 from five import grok
-
+from logging import getLogger
 from plone.dexterity.interfaces import IDexterityFTI
-from zope.component import queryUtility
-from zope.interface import Interface
-from zope.security import checkPermission
-
-from z3c.form import field
-from z3c.form import button
-from z3c.form.browser.radio import RadioFieldWidget
-from z3c.form.browser.checkbox import CheckBoxFieldWidget
-from zope.browserpage.viewpagetemplatefile import ViewPageTemplateFile
-from zope.i18n import translate
-from zope.schema import Choice, List, Set
-
-from seantis.reservation.throttle import throttled
+from plone.formwidget.datetime.z3cform.widget import DateFieldWidget
+from plone.formwidget.recurrence.z3cform.widget import RecurrenceFieldWidget
+from plone.memoize import instance
+from seantis.reservation import _
+from seantis.reservation import db
+from seantis.reservation import plone_session
+from seantis.reservation import utils
+from seantis.reservation.error import DirtyReadOnlySession
+from seantis.reservation.form import (
+    ResourceBaseForm,
+    AllocationGroupView,
+    ReservationListView,
+    extract_action_data
+)
 from seantis.reservation.interfaces import (
     IResourceBase,
     IReservation,
@@ -29,21 +27,31 @@ from seantis.reservation.interfaces import (
     IRevokeReservation,
     IReservationIdForm
 )
-
-from seantis.reservation.error import DirtyReadOnlySession
-from seantis.reservation import _
-from seantis.reservation import db
-from seantis.reservation import utils
-from seantis.reservation import plone_session
-from seantis.reservation.form import (
-    ResourceBaseForm,
-    AllocationGroupView,
-    ReservationListView,
-    extract_action_data
-)
-
+from seantis.reservation.interfaces import IAllocationIdForm
+from seantis.reservation.models.allocation import Allocation
+from seantis.reservation.models.reservation import Reservation
 from seantis.reservation.overview import OverviewletManager
-from seantis.reservation.error import NoResultFound
+from seantis.reservation.session import Session
+from seantis.reservation.session import serialized
+from seantis.reservation.throttle import throttled
+from z3c.form import button
+from z3c.form import field
+from z3c.form.browser.checkbox import CheckBoxFieldWidget
+from z3c.form.browser.radio import RadioFieldWidget
+from zope.browserpage.viewpagetemplatefile import ViewPageTemplateFile
+from zope.component import queryUtility
+from zope.component.hooks import getSite
+from zope.i18n import translate
+from zope.interface import Interface
+from zope.schema import Choice, List, Set
+from zope.security import checkPermission
+
+log = getLogger('seantis.reservation')
+
+
+
+
+
 
 
 class ReservationUrls(object):
@@ -68,6 +76,19 @@ class ReservationUrls(object):
         context = context or self.context
         base = context.absolute_url()
         return base + u'/update-reservation-data?reservation=%s' % token
+
+    def remove_reserved_slots_url(self, token, allocation_id, context=None):
+        context = context or self.context
+        base = context.absolute_url()
+        url = u'/remove-reserved-slots?reservation=%s&allocation_id=%s'
+        return base + url % (token, allocation_id)
+
+    def remove_all_reserved_slots_url(self, token, allocation_id,
+                                      context=None):
+        context = context or self.context
+        base = context.absolute_url()
+        url = u'/remove-all-reserved-slots?reservation=%s&allocation_id=%s'
+        return base + url % (token, allocation_id)
 
 
 class ReservationSchemata(object):
@@ -139,7 +160,6 @@ class SessionFormdataMixin(ReservationSchemata):
         return ftis
 
     def additional_data(self, form_data=None, add_manager_defaults=False):
-
         if not form_data:
             data = plone_session.get_additional_data(self.context)
         else:
@@ -255,6 +275,16 @@ class YourReservationsData(object):
 
 class ReservationBaseForm(ResourceBaseForm):
 
+    def get_additional_data(self, data):
+        additional_data = self.additional_data(data, add_manager_defaults=True)
+        # only store forms defined in the formsets list
+        additional_data = dict(
+            (
+                form, additional_data[form]
+            ) for form in self.context.formsets if form in additional_data
+        )
+        return additional_data
+
     def your_reservation_defaults(self, defaults):
         """ Extends the given dictionary containing field defaults with
         the defaults found in your-reservations.
@@ -277,32 +307,29 @@ class ReservationBaseForm(ResourceBaseForm):
         return defaults
 
     def run_reserve(
-        self, data, approve_manually, start=None, end=None, group=None, quota=1
+            self, data, approve_manually, dates=None, group=None, quota=1,
+            rrule=None, description=None
     ):
 
-        assert (start and end) or group
-        assert not (start and end and group)
+        assert dates or group
+        assert not (dates and group)
 
         email = self.email(data)
-        additional_data = self.additional_data(data, add_manager_defaults=True)
         session_id = self.session_id()
 
-        # only store forms defined in the formsets list
-        additional_data = dict(
-            (
-                form, additional_data[form]
-            ) for form in self.context.formsets if form in additional_data
-        )
+        additional_data = self.get_additional_data(data)
 
-        if start and end:
+        if dates:
             token = self.scheduler.reserve(
-                email, (start, end),
-                data=additional_data, session_id=session_id, quota=quota
+                email, dates, data=additional_data,
+                session_id=session_id, quota=quota, rrule=rrule,
+                description=description
             )
         else:
             token = self.scheduler.reserve(
                 email, group=group,
-                data=additional_data, session_id=session_id, quota=quota
+                data=additional_data, session_id=session_id, quota=quota,
+                description=description
             )
 
         if approve_manually:
@@ -326,6 +353,10 @@ class ReservationForm(
     context_buttons = ('reserve', )
 
     fields = field.Fields(IReservation)
+
+    fields['day'].widgetFactory = DateFieldWidget
+    fields['recurrence'].widgetFactory = RecurrenceFieldWidget
+
     label = _(u'Resource reservation')
 
     fti = None
@@ -333,6 +364,12 @@ class ReservationForm(
     autoGroups = True
     enable_form_tabbing = True
     default_fieldset_label = _(u'General Information')
+
+    def updateWidgets(self):
+        super(ReservationForm, self).updateWidgets()
+        widget = self.widgets['recurrence']
+        widget.start_field = 'day'
+        widget.show_repeat_forever = False
 
     @property
     def css_class(self):
@@ -395,37 +432,22 @@ class ReservationForm(
         dt = DateTime(value)
         return time(dt.hour(), dt.minute())
 
-    def validate(self, data):
-        try:
-            start, end = utils.get_date_range(
-                data['day'], data['start_time'], data['end_time']
-            )
-            if not self.allocation(data['id']).contains(start, end):
-                utils.form_error(_(u'Reservation out of bounds'))
-
-            return start, end
-        except (NoResultFound, TypeError):
-            utils.form_error(_(u'Invalid reservation request'))
-
     @button.buttonAndHandler(_(u'Reserve'))
     @extract_action_data
     def reserve(self, data):
         allocation = self.allocation(data['id'])
         approve_manually = allocation.approve_manually
 
-        start, end = self.validate(data)
+        dates = utils.get_dates(data, is_whole_day=allocation.whole_day)
         quota = int(data.get('quota', 1))
-
-        # whole day allocations don't show the start / end time which is to
-        # say the data arrives with 00:00 - 00:00. we align that to the day
-        if allocation.whole_day:
-            assert start == end
-            start, end = utils.align_range_to_day(start, end)
+        description = data.get('description')
 
         def reserve():
             self.run_reserve(
                 data=data, approve_manually=approve_manually,
-                start=start, end=end, quota=quota
+                dates=dates, quota=quota,
+                rrule=data['recurrence'],
+                description=description,
             )
 
         action = throttled(reserve, self.context, 'reserve')
@@ -676,6 +698,112 @@ class ReservationDenialForm(ReservationDecisionForm):
         self.redirect_to_context()
 
 
+class ReservedSlotsRemovalForm(
+    ReservationIdForm,
+    ReservationListView,
+    ReservationUrls
+):
+    """Base class for forms that remove reserved slots based on a reservation
+    and an allocation. The allocation is used to calculate a range of dates.
+
+    """
+    grok.baseclass()
+
+    permission = 'seantis.reservation.ApproveReservations'
+    grok.require(permission)
+
+    destructive_buttons = ('remove', )
+
+    fields = field.Fields(IAllocationIdForm)
+    template = ViewPageTemplateFile('templates/revoke_reservation.pt')
+
+    label = _(u'Remove reservations')
+
+    show_links = False
+
+    hidden_fields = ('reservation', 'allocation_id',)
+
+    extracted_data = {}
+
+    @property
+    def timespan_start(self):
+        return self.allocation.start
+
+    @property
+    def timespan_end(self):
+        return self.allocation.end
+
+    def defaults(self):
+        defaults = super(ReservedSlotsRemovalForm, self).defaults()
+        defaults['allocation_id'] = self.allocation_id
+        return defaults
+
+    @property
+    def allocation_id(self):
+        allocation_id = self.request.get(
+            'allocation_id', self.extracted_data.get('allocation_id')
+        )
+        return utils.request_id_as_int(allocation_id)
+
+    @property
+    @instance.memoize
+    def allocation(self):
+        if self.allocation_id:
+            return Session.query(Allocation).get(self.allocation_id)
+        return None
+
+    @property
+    def hint(self):
+        if not (self.reservation or self.approved_reservations()):
+            return _(u'No such reservation')
+
+        return _(
+            u'Do you really want to remove the following reservations?'
+        )
+
+    @button.buttonAndHandler(_(u'Remove'))
+    @extract_action_data
+    def remove(self, data):
+        def remove():
+            self.scheduler.remove_reservation_slots(
+                data['reservation'], self.timespan_start, self.timespan_end
+            )
+            self.flash(_(u'Reservation removed'))
+
+        utils.handle_action(action=remove, success=self.redirect_to_context)
+
+    @button.buttonAndHandler(_(u'Cancel'))
+    def cancel(self, action):
+        self.redirect_to_context()
+
+
+class RemoveSlotsForOneAllocation(ReservedSlotsRemovalForm):
+    """Remove reserved slots for one allocation and reservation, i.e. all
+    reserved slots from one reservation for one day. From the user's point of
+    view this removes "the reservation for one day".
+
+    """
+
+    grok.name('remove-reserved-slots')
+
+
+class RemoveSlotsForAllFutureAllocations(ReservedSlotsRemovalForm):
+    """Remove all reserved slots starting at one allocation up to the end of
+    the targeted reservation. From the user's point of view this removes
+    "the reservations for one day and all future dates".
+
+    """
+
+    grok.name('remove-all-reserved-slots')
+
+    @property
+    def timespan_end(self):
+        reservation = self.scheduler.reservation_by_token(
+                                                        self.reservation).one()
+        dummy, end = reservation.target_dates()[-1]
+        return end
+
+
 class ReservationRevocationForm(
     ReservationIdForm,
     ReservationListView,
@@ -733,6 +861,49 @@ class ReservationList(grok.View, ReservationListView, ReservationUrls):
 
     template = grok.PageTemplateFile('templates/reservations.pt')
 
+    #XXX maybe move to ReservationList
+    def all_reservations(self):
+        query = super(ReservationList, self).all_reservations()
+        if query:
+            return query
+
+        if self.recurring_allocation_id:
+            scheduler = self.context.scheduler()
+            return scheduler.reservations_by_recurring_allocation(
+                                                  self.recurring_allocation_id)
+
+        return None
+
+    def all_allocations(self):
+        query = super(ReservationList, self).all_allocations()
+        if query:
+            return query
+
+        if self.recurring_allocation_id:
+            return Session.query(Allocation).filter_by(
+                                               id=self.recurring_allocation_id)
+
+        return None
+
+    def reservations_by_recurring_allocation(self):
+        """Find reservations that target a recurring allocation
+        """
+
+        allocation_id = self.recurring_allocation_id
+        allocation = Session.query(Allocation).get(allocation_id)
+        if not allocation:
+            return None
+
+        reservation_tokens = [each.reservation_token for each
+                              in allocation.reserved_slots]
+        return Session.query(Reservation).filter(
+                                    Reservation.token.in_(reservation_tokens))
+
+    @property
+    def recurring_allocation_id(self):
+        allocation_id = self.request.get('recurring_allocation_id')
+        return utils.request_id_as_int(allocation_id)
+
     @property
     def id(self):
         return utils.request_id_as_int(self.request.get('id'))
@@ -757,12 +928,71 @@ class ReservationDataEditForm(ReservationIdForm, ReservationSchemata):
     context_buttons = ('save', )
     extracted_errors = []
 
+    fields = field.Fields(IReservation, IReservationIdForm)
+
+    fields['day'].widgetFactory = DateFieldWidget
+    fields['recurrence'].widgetFactory = RecurrenceFieldWidget
+    default_fieldset_label = _(u'General Information')
+    label = _(u'Resource reservation')
+
     @property
-    def label(self):
-        if self.context.formsets:
-            return _(u'Edit Formdata')
+    def reservation(self):
+        reservation = super(ReservationDataEditForm, self).reservation
+        return reservation or self.request.get('form.widgets.reservation')
+
+    @serialized
+    def get_reservation(self):
+        query = self.scheduler.reservation_by_token(self.reservation)
+        return query.one()
+
+    def updateWidgets(self):
+        super(ReservationDataEditForm, self).updateWidgets()
+        widget = self.widgets['recurrence']
+        widget.start_field = 'day'
+        widget.show_repeat_forever = False
+
+    @property
+    def disabled_fields(self):
+        disabled = []
+        reservation = self.get_reservation()
+        if reservation.is_group:
+            disabled.append('start_time')
+            disabled.append('end_time')
         else:
-            return _(u'No Formdata to edit')
+            try:
+                allocations = self.scheduler.allocations_by_reservation(
+                                                              self.reservation)
+                if not any(each.partly_available for each in allocations):
+                    disabled.append('start_time')
+                    disabled.append('end_time')
+
+            except DirtyReadOnlySession:
+                pass
+        return disabled
+
+    @property
+    def hidden_fields(self):
+        hidden = ['day', 'id', 'recurrence', 'reservation']
+        reservation = self.get_reservation()
+        if not reservation.autoapprovable or reservation.is_group:
+            hidden.append('quota')
+            hidden.append('start_time')
+            hidden.append('end_time')
+        else:
+            try:
+                allocations = self.scheduler.allocations_by_reservation(
+                                                              self.reservation)
+                if any(each.reservation_quota_limit == 1
+                       for each in allocations):
+                    hidden.append('quota')
+                if any(each.whole_day for each in allocations):
+                    hidden.append('start_time')
+                    hidden.append('end_time')
+
+            except DirtyReadOnlySession:
+                pass
+
+        return hidden
 
     def get_reservation_data(self):
         if not self.reservation:
@@ -770,8 +1000,7 @@ class ReservationDataEditForm(ReservationIdForm, ReservationSchemata):
 
         if not hasattr(self, 'reservation_data'):
             try:
-                query = self.scheduler.reservation_by_token(self.reservation)
-                self.reservation_data = query.one().data
+                self.reservation_data = self.get_reservation().data
             except DirtyReadOnlySession:
                 self.reservation_data = {}
 
@@ -779,6 +1008,14 @@ class ReservationDataEditForm(ReservationIdForm, ReservationSchemata):
 
     def defaults(self):
         defaults = super(ReservationDataEditForm, self).defaults()
+        reservation = self.get_reservation()
+        defaults['start_time'] = reservation.start
+        end = reservation.end
+        if end:
+            end += timedelta(microseconds=1)
+        defaults['end_time'] = end
+        defaults['description'] = reservation.description
+        defaults['email'] = reservation.email
 
         if not self.context.formsets:
             return defaults
@@ -816,15 +1053,26 @@ class ReservationDataEditForm(ReservationIdForm, ReservationSchemata):
             elif field_type is Choice:
                 field.widgetFactory = RadioFieldWidget
 
+    def get_additional_data(self, data):
+        return utils.additional_data_dictionary(data, self.fti)
+
     @button.buttonAndHandler(_(u'Save'))
     @extract_action_data
     def save(self, data):
-
-        self.additional_data = utils.additional_data_dictionary(data, self.fti)
+        query = self.scheduler.reservation_by_token(self.reservation)
+        self.additional_data = self.get_additional_data(data)
+        start, end = utils.get_date_range(query.one().start.date(),
+                                          data.get('start_time'),
+                                          data.get('end_time'))
 
         def save():
-            self.scheduler.update_reservation_data(
-                self.reservation, self.additional_data
+            self.scheduler.update_reservation(
+                self.reservation,
+                start,
+                end,
+                data.get('email'),
+                data.get('description'),
+                self.additional_data,
             )
             self.flash(_(u'Formdata updated'))
 

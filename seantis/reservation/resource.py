@@ -244,6 +244,14 @@ class GroupView(grok.View, AllocationGroupView):
     def title(self):
         return self.group
 
+    @property
+    def timespan_start(self):
+        return None
+
+    @property
+    def timespan_end(self):
+        return None
+
 
 class Listing(grok.View):
     permission = 'zope2.View'
@@ -346,10 +354,12 @@ class Slots(grok.View, CalendarRequest):
                 'reserve', dict(group=allocation.group)
             )
 
-        res_add(
-            _(u'Manage'), 'reservations', dict(group=allocation.group),
-            'inpage'
-        )
+        if allocation.in_recurrence:
+            manage_params = dict(recurring_allocation_id=allocation.id)
+        else:
+            manage_params = dict(group=allocation.group)
+
+        res_add(_(u'Manage'), 'reservations', manage_params, 'inpage')
 
         # menu entries for single items
         entry_add = lambda n, v, p, t: \
@@ -369,7 +379,15 @@ class Slots(grok.View, CalendarRequest):
 
         group_add = lambda n, v, p, t: \
             items.menu_add(_('Recurrences'), n, v, p, t)
-        if allocation.in_group:
+        if allocation.in_recurrence:
+            params = dict(recurrence_id=allocation.recurrence_id)
+            group_add(
+                _(u'List'), 'group', params, 'overlay'
+            )
+            group_add(
+                _(u'Remove'), 'remove-allocation', params, 'overlay'
+            )
+        elif allocation.in_group:
         # menu entries for group items
 
             group_add(
@@ -380,15 +398,6 @@ class Slots(grok.View, CalendarRequest):
                 _(u'Remove'), 'remove-allocation',
                 dict(group=allocation.group),
                 'overlay'
-            )
-
-        if allocation.in_recurrence:
-            params = dict(recurrence_id=allocation.recurrence_id)
-            group_add(
-                _(u'List'), 'group', params, 'overlay'
-            )
-            group_add(
-                _(u'Remove'), 'remove-allocation', params, 'overlay'
             )
 
         return items
@@ -418,7 +427,7 @@ class Slots(grok.View, CalendarRequest):
             )
 
             if alloc.partly_available:
-                partitions = alloc.availability_partitions()
+                partitions = alloc.availability_partitions(scheduler)
             else:
                 # if the allocation is not partly available there can only
                 # be one partition meant to be shown as empty unless the
