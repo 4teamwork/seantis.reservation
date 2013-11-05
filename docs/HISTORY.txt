@@ -2,6 +2,14 @@
 Changelog
 =========
 
+1.1 (unreleased)
+----------------
+
+- Be a bit more tolerant with time user-input for allocations and reservations.
+  Auto-Correct "24:00" to "00:00" and strip additional Text like "13:00 Uhr".
+  Don't validate start/end time of an allocation when "Whole Day" has been
+  selected to avoid confusing error messages.
+
 1.0.7
 -----
 
