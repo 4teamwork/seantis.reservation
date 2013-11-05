@@ -395,6 +395,29 @@ class TestBrowser(FunctionalTestCase):
         self.assertFalse('limitedList' in browser.contents)
         self.assertFalse('your-reservation-quota' in browser.contents)
 
+    def test_allocation_validation_whole_day(self):
+        """Test that for whole_day reservations start_time and end_time are
+        not validated.
+
+        """
+        self.add_resource('whole_day')
+
+        browser = self.admin_browser
+
+        allocate_url = '/%s/allocate' % ('whole_day')
+        browser.open(self.infolder(allocate_url))
+        browser.getControl('Start').value = 'InvalidTime'
+        browser.getControl('End').value = ''
+        browser.getControl('Whole Day').selected = True
+
+        browser.getControl('Allocate').click()
+
+        errors = str(self.admin_browser.query("div.field.error .error"))
+        self.assertNotIn('Required input is missing.', errors)
+        self.assertNotIn(
+            'Please specify a valid time, for example 09:00', errors
+        )
+
     def test_reservation_approval(self):
 
         browser = self.new_browser()
