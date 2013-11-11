@@ -9,6 +9,9 @@ Changelog
   Auto-Correct "24:00" to "00:00" and strip additional Text like "13:00 Uhr".
   Don't validate start/end time of an allocation when "Whole Day" has been
   selected to avoid confusing error messages.
+- Don't autohide messages from a closing lightbox but replace existing portal
+  messages in the main column.
+  [deif]
 
 1.0.7
 -----
