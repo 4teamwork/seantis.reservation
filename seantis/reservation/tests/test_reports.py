@@ -15,6 +15,7 @@ from seantis.reservation.reports.latest_reservations import (
 
 reservation_email = u'test@example.com'
 
+
 class TestReports(IntegrationTestCase):
 
     def test_report_parameters_mixin_defaults(self):
@@ -94,6 +95,42 @@ class TestReports(IntegrationTestCase):
 
         # on reservation on the second day
         self.assertEqual(len(report[26][resource.uuid()]['approved']), 1)
+
+    @serialized
+    def test_monthly_report_recurring_reservation(self):
+        self.login_admin()
+
+        resource = self.create_resource()
+        sc = resource.scheduler()
+
+        start1 = datetime(2011, 1, 1, 15, 0)
+        end1 = datetime(2011, 1, 1, 18)
+        start2 = datetime(2011, 1, 2, 15, 0)
+        end2 = datetime(2011, 1, 2, 18)
+
+        dates = (start1, end1, start2, end2)
+        rrule = 'RRULE:FREQ=DAILY;COUNT=2'
+
+        sc.allocate(
+            dates, raster=15, partly_available=True, rrule=rrule,
+        )
+        token = sc.reserve(
+            u'foo@example.com', dates=dates, rrule=rrule
+        )
+        sc.approve_reservation(token)
+
+        report = monthly_report(2011, 1, {resource.uuid(): resource})
+
+        # one record for each day
+        self.assertEqual(len(report), 2)
+
+        # one resource for each day
+        self.assertEqual(len(report[1]), 1)
+        self.assertEqual(len(report[2]), 1)
+
+        # one reservation for each day
+        self.assertEqual(len(report[1][resource.uuid()]['approved']), 1)
+        self.assertEqual(len(report[2][resource.uuid()]['approved']), 1)
 
     @mock.patch('seantis.reservation.utils.utcnow')
     def test_latest_reservations_human_date(self, utcnow):
