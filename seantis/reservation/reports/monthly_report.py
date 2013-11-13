@@ -1,11 +1,12 @@
+from calendar import Calendar
+from datetime import date, datetime, time, timedelta
 import json
 
-from calendar import Calendar
-from datetime import date, time, timedelta
+from sqlalchemy.sql.expression import or_
 
 from five import grok
-from zope.interface import Interface
 from plone.memoize import view
+from zope.interface import Interface
 
 from seantis.reservation import _
 from seantis.reservation import Session
@@ -14,6 +15,8 @@ from seantis.reservation import utils
 from seantis.reservation.models import Allocation, Reservation
 from seantis.reservation.reserve import ReservationUrls
 from seantis.reservation.reports import GeneralReportParametersMixin
+from seantis.reservation.models.reserved_slot import ReservedSlot
+
 
 calendar = Calendar()
 
@@ -244,8 +247,9 @@ def monthly_report(year, month, resources, reservations='*'):
             }
 
     # gather the reservations with as much bulk loading as possible
-    period_start = date(year, month, 1)
-    period_end = date(year, month, last_day)
+    period_start = datetime(year, month, 1)
+    # if we don't align the last day is dropped
+    period_end = utils.align_date_to_day(datetime(year, month, last_day), 'up')
 
     # get a list of relevant allocations in the given period
     query = Session.query(Allocation)
@@ -255,6 +259,7 @@ def monthly_report(year, month, resources, reservations='*'):
     query = query.filter(Allocation.resource.in_(resources.keys()))
 
     allocations = query.all()
+    allocation_ids = [each.id for each in allocations]
 
     # quit if there are no allocations at this point
     if not allocations:
@@ -265,14 +270,20 @@ def monthly_report(year, month, resources, reservations='*'):
     for allocation in allocations:
         groups.setdefault(allocation.group, list()).append(allocation)
 
+    query = Session.query(ReservedSlot.reservation_token)
+    query = query.filter(period_start <= ReservedSlot.start)
+    query = query.filter(ReservedSlot.end <= period_end)
+    query = query.filter(ReservedSlot.allocation_id.in_(allocation_ids))
+    query = query.distinct()
+    tokens = list(utils.flatten(query.all()))
+
     # using the groups get the relevant reservations
     query = Session.query(Reservation)
-    query = query.filter(Reservation.target.in_(groups.keys()))
-
-    if reservations != '*':
-        query = query.filter(Reservation.token.in_(reservations))
-
+    query = query.filter(or_(Reservation.target.in_(groups.keys()),
+                             Reservation.token.in_(tokens)))
     query = query.order_by(Reservation.status)
+
+    # XXX get reservations by reserved slots???
 
     reservations = query.all()
     reservation_urls = ReservationUrls()
@@ -334,6 +345,11 @@ def monthly_report(year, month, resources, reservations='*'):
     for reservation in reservations:
         if reservation.target_type == u'allocation':
             add_reservation(reservation.start, reservation.end, reservation)
+        elif reservation.target_type == u'recurrence':
+            for start, end in reservation.timespans():
+                start, end = utils.as_machine_date(start, end)
+                if start >= period_start and end <= period_end:
+                    add_reservation(start, end, reservation)
         else:
             for allocation in groups[reservation.target]:
                 add_reservation(allocation.start, allocation.end, reservation)
