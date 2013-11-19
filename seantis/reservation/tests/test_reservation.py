@@ -14,10 +14,12 @@ class TestReservation(unittest.TestCase):
         self.reservation.target_type = u'recurrence'
         self.reservation.rrule = 'RRULE:FREQ=DAILY;COUNT=3'
 
-        dates = [(datetime(2010, 1, 1, 9, 00), datetime(2010, 1, 1, 14, 15)),
-                 (datetime(2010, 1, 2, 9, 00), datetime(2010, 1, 2, 14, 15)),
-                 (datetime(2010, 1, 3, 9, 00), datetime(2010, 1, 3, 14, 15))]
-
+        dates = [(datetime(2010, 1, 1, 9, 00),
+                  datetime(2010, 1, 1, 14, 14, 59, 999999)),
+                 (datetime(2010, 1, 2, 9, 00),
+                  datetime(2010, 1, 2, 14, 14, 59, 999999)),
+                 (datetime(2010, 1, 3, 9, 00),
+                  datetime(2010, 1, 3, 14, 14, 59, 999999))]
         self.assertListEqual(dates, self.reservation.target_dates())
 
     def test_target_dates_allocation(self):
