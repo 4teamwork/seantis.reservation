@@ -246,9 +246,12 @@ class UtilsTestCase(IntegrationTestCase):
         dates = utils.get_dates(data)
         self.assertEqual(3, len(dates))
 
-        expected = [(datetime(2014, 2, 18, 13), datetime(2014, 2, 18, 16, 30)),
-                    (datetime(2014, 3, 18, 13), datetime(2014, 3, 18, 16, 30)),
-                    (datetime(2014, 4, 1, 13), datetime(2014, 4, 1, 16, 30))]
+        expected = [(datetime(2014, 2, 18, 13),
+                     datetime(2014, 2, 18, 16, 29, 59, 999999)),
+                    (datetime(2014, 3, 18, 13),
+                     datetime(2014, 3, 18, 16, 29, 59, 999999)),
+                    (datetime(2014, 4, 1, 13),
+                     datetime(2014, 4, 1, 16, 29, 59, 999999))]
         self.assertListEqual(expected, dates)
 
     def test_as_machine_time(self):
@@ -263,3 +266,19 @@ class UtilsTestCase(IntegrationTestCase):
         )
 
         self.assertRaises(AssertionError, utils.as_machine_time, 0, 0)
+
+    def test_get_date_range(self):
+        self.assertEqual((
+            datetime(2013, 7, 1, 0, 0),
+            datetime(2013, 7, 1, 23, 59, 59, 999999)
+        ), utils.get_date_range(datetime(2013, 7, 1), time(0, 0), time(0, 0)))
+
+        self.assertEqual((
+            datetime(2013, 7, 1, 0, 0),
+            datetime(2013, 7, 1, 0, 59, 59, 999999)
+        ), utils.get_date_range(datetime(2013, 7, 1), time(0, 0), time(1, 0)))
+
+        self.assertEqual((
+            datetime(2013, 7, 1, 1, 0),
+            datetime(2013, 7, 1, 23, 59, 59, 999999)
+        ), utils.get_date_range(datetime(2013, 7, 1), time(1, 0), time(0, 0)))
