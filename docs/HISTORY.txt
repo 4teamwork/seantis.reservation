@@ -5,6 +5,9 @@ Changelog
 1.1 (unreleased)
 ----------------
 
+- Fix a bug where reservations for partially available whole-day allocations
+  did always span the whole day.
+  [deif]
 - Be a bit more tolerant with time user-input for allocations and reservations.
   Auto-Correct "24:00" to "00:00" and strip additional Text like "13:00 Uhr".
   Don't validate start/end time of an allocation when "Whole Day" has been

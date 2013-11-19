@@ -924,15 +924,16 @@ def get_dates(data, is_whole_day=False):
 
 def get_date_range(day, start_time, end_time):
     """Returns the date-range of a date a start and an end time."""
+
     start = datetime.combine(day, start_time)
     end = datetime.combine(day, end_time)
 
-    # since the user can only one date with separate times it is assumed
+    # since the user can only enter one date with separate times it is assumed
     # that an end before a start is meant for the following day
-    if end < start:
+    if end <= start:
         end += timedelta(days=1)
 
-    return start, end
+    return as_machine_date(start, end)
 
 
 def flash(context, message, type='info'):
