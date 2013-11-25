@@ -5,6 +5,10 @@ Changelog
 1.1 (unreleased)
 ----------------
 
+- Fix a bug where blocked periods were not removed when removing reserved
+  slots for a sinlge day or multiple days without removing the whole
+  reservation.
+  [deif]
 - Fix a bug where reservations for partially available whole-day allocations
   did always span the whole day.
   [deif]

@@ -999,6 +999,28 @@ class TestScheduler(IntegrationTestCase):
         self.assertEqual(sc2.managed_blocked_periods().count(), 0)
 
     @serialized
+    def test_remove_reservation_slots_removes_blocks(self):
+        sc1 = Scheduler(new_uuid())
+        sc2 = Scheduler(new_uuid())
+
+        start = datetime(2013, 7, 23, 8, 0)
+        end = datetime(2013, 7, 23, 12, 0)
+        dates = [(start, end),
+                 (datetime(2013, 7, 24, 8, 0), datetime(2013, 7, 24, 12, 0))]
+        rrule = 'RRULE:FREQ=DAILY;COUNT=2'
+
+        sc1.allocate(dates)
+        token = sc1.reserve(reservation_email, dates, rrule=rrule)
+        sc1.approve_reservation(token)
+
+        reservation_1 = sc1.reservation_by_token(token).one()
+        sc2.block_periods(reservation_1)
+        self.assertEqual(2, sc2.managed_blocked_periods().count())
+
+        sc1.remove_reservation_slots(token, start, end)
+        self.assertEqual(1, sc2.managed_blocked_periods().count())
+
+    @serialized
     def test_allocation_partition_completely_available(self):
         self.login_admin()
         sc = Scheduler(self.create_resource().uuid())

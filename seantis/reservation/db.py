@@ -75,13 +75,17 @@ def all_allocations_in_range(start, end):
 
 
 @serialized
-def unblock_periods(reservation):
+def unblock_periods(reservation, start=None, end=None):
     """Unblock periods for any resource based o a reservation.
 
     """
     if not utils.is_uuid(reservation):
         reservation = reservation.token
     query = Session.query(BlockedPeriod).filter_by(token=reservation)
+    if start:
+        query = query.filter(BlockedPeriod.start >= start)
+    if end:
+        query = query.filter(BlockedPeriod.end <= end)
     query.delete('fetch')
 
 
@@ -1089,6 +1093,8 @@ class Scheduler(object):
         notify(ReservationSlotsRemovedEvent(reservation, self.language, dates))
 
         query_remove.delete('fetch')
+        for start, end in dates:
+            unblock_periods(reservation, start, end)
 
     def _update_reserved_slots(self, start, end, reservation):
         """re-generate reserved slots.
