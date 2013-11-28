@@ -684,7 +684,7 @@ msgstr "Ressources"
 #: seantis.reservation/seantis/reservation/reserve.py:835
 #: seantis.reservation/seantis/reservation/templates/reservations.pt:38
 msgid "Revoke"
-msgstr "Annuler"
+msgstr "Supprimer"
 
 #: seantis.reservation/seantis/reservation/reserve.py:822
 msgid "Revoke reservation"
