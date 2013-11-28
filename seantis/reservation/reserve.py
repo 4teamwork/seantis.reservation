@@ -293,12 +293,7 @@ class ReservationBaseForm(ResourceBaseForm):
         additional_data = self.additional_data(data, add_manager_defaults=True)
         session_id = self.session_id()
 
-        # only store forms defined in the formsets list
-        additional_data = dict(
-            (
-                form, additional_data[form]
-            ) for form in self.context.formsets if form in additional_data
-        )
+        additional_data = self.filter_additional_data(additional_data)
 
         run_pre_reserve_script(self.context, start, end, additional_data)
 
@@ -321,6 +316,19 @@ class ReservationBaseForm(ResourceBaseForm):
         else:
             self.scheduler.approve_reservation(token)
             self.flash(_(u'Reservation successful'))
+
+        return token
+
+    def filter_additional_data(self, additional_data):
+        """Only store forms defined in the formsets list """
+
+        additional_data = dict(
+            (
+                form, additional_data[form]
+            ) for form in self.context.formsets if form in additional_data
+        )
+
+        return additional_data
 
 
 class ReservationForm(
