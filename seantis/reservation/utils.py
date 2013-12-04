@@ -567,7 +567,7 @@ def get_resource_by_uuid(
 
     results = catalog(**kwargs)
 
-    return len(results) == 1 and results[0] or None
+    return results[0] if len(results) == 1 else None
 
 
 def get_resource_title(resource):

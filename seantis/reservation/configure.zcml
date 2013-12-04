@@ -139,12 +139,14 @@ http://groups.google.com/group/zope-core-dev/browse_thread/thread/6c10ebc1602701
 
 <adapter factory=".interfaces.DefaultLanguage" name="default" />
 
-
 <adapter factory=".converter.FriendlyTimeDataConverter"
     for="zope.schema.interfaces.ITime z3c.form.interfaces.ITextWidget" />
 
 <adapter factory=".converter.AllocationTimeDataConverter"
     for=".interfaces.IAllocationTime z3c.form.interfaces.ITextWidget" />
+
+<!-- Mail handler Adapter -->
+<adapter factory=".mail.NotificationMailHandler" />
 
 <!-- Resources -->
 <browser:resourceDirectory name="seantis.reservation.images" directory="images"/>

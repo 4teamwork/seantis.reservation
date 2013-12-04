@@ -1,18 +1,16 @@
-from zope.interface import implements
-
-from seantis.reservation.interfaces import (
-    IReservationApprovedEvent,
-    IReservationBaseEvent,
-    IReservationDeniedEvent,
-    IReservationMadeEvent,
-    IReservationRevokedEvent,
-    IReservationSlotsCreatedEvent,
-    IReservationsConfirmedEvent,
-    IReservationSlotsRemovedEvent,
-    IResourceViewedEvent,
-)
+from seantis.reservation import utils
+from seantis.reservation.interfaces import IReservationApprovedEvent
+from seantis.reservation.interfaces import IReservationBaseEvent
+from seantis.reservation.interfaces import IReservationDeniedEvent
+from seantis.reservation.interfaces import IReservationMadeEvent
+from seantis.reservation.interfaces import IReservationRevokedEvent
+from seantis.reservation.interfaces import IReservationSlotsCreatedEvent
+from seantis.reservation.interfaces import IReservationSlotsRemovedEvent
 from seantis.reservation.interfaces import IReservationSlotsUpdatedEvent
 from seantis.reservation.interfaces import IReservationUpdatedEvent
+from seantis.reservation.interfaces import IReservationsConfirmedEvent
+from seantis.reservation.interfaces import IResourceViewedEvent
+from zope.interface import implements
 
 
 class ResourceViewedEvent(object):

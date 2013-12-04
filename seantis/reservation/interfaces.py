@@ -919,3 +919,24 @@ class IReservationUpdatedEvent(IReservationBaseEvent):
     old_data = Attribute("Old reservation data")
     time_changed = Attribute("Boolean indicating whether reservation time "
                              "has changed")
+
+
+class INotificationMailHandler(Interface):
+
+    def __init__(request):
+        pass
+
+    def on_reservations_confirmed(event):
+        pass
+
+    def on_reservation_approved(event):
+        pass
+
+    def on_reservation_denied(event):
+        pass
+
+    def on_reservation_revoked(event):
+        pass
+
+    def on_reservation_updated(event):
+        pass

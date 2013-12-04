@@ -1,113 +1,141 @@
-from itertools import groupby
-
-import logging
+from Products.CMFCore.interfaces import IFolderish
+from Products.CMFCore.utils import getToolByName
 from Products.CMFPlone.utils import safe_unicode
-from seantis.reservation.interfaces import IReservationUpdatedEvent
-log = logging.getLogger('seantis.reservation')
-
-from five import grok
-
-from email.MIMEText import MIMEText
 from email.Header import Header
+from email.MIMEText import MIMEText
 from email.Utils import parseaddr, formataddr
-
+from five import grok
+from itertools import groupby
+from plone import api
 from plone.dexterity.content import Item
 from plone.directives import dexterity
 from plone.memoize import view
-from Products.CMFCore.interfaces import IFolderish
-from Products.CMFCore.utils import getToolByName
-from z3c.form import button
-from zope.i18n import translate
-
+from seantis.reservation import _
+from seantis.reservation import settings
+from seantis.reservation import utils
 from seantis.reservation.form import ReservationDataView
-from seantis.reservation.reserve import ReservationUrls
-from seantis.reservation.interfaces import IReservationsConfirmedEvent
+from seantis.reservation.interfaces import IEmailTemplate
+from seantis.reservation.interfaces import INotificationMailHandler
 from seantis.reservation.interfaces import IReservationApprovedEvent
 from seantis.reservation.interfaces import IReservationDeniedEvent
 from seantis.reservation.interfaces import IReservationRevokedEvent
+from seantis.reservation.interfaces import IReservationUpdatedEvent
+from seantis.reservation.interfaces import IReservationsConfirmedEvent
 from seantis.reservation.interfaces import OverviewletManager
-from seantis.reservation.interfaces import IEmailTemplate
 from seantis.reservation.mail_templates import templates
-from seantis.reservation import utils
-from seantis.reservation import settings
-from seantis.reservation import _
+from seantis.reservation.reserve import ReservationUrls
+from z3c.form import button
+from zope.component import adapts
+from zope.component import getAdapter
+from zope.i18n import translate
+from zope.interface import implements
+from zope.interface.interface import Interface
+import logging
+
+log = logging.getLogger('seantis.reservation')
+
+
+def _get_mail_handler(event):
+    return getAdapter(api.portal.get().REQUEST, INotificationMailHandler)
 
 
 @grok.subscribe(IReservationsConfirmedEvent)
 def on_reservations_confirmed(event):
-
-    # send one mail to the reservee
-    if settings.get('send_email_to_reservees'):
-        send_reservations_confirmed(event.reservations, event.language)
-
-    send_notification = settings.get('send_email_to_managers')
-    send_approval = settings.get('send_approval_email_to_managers')
-    # send many mails to the admins
-    if send_notification or send_approval:
-        for reservation in event.reservations:
-
-            if reservation.autoapprovable and send_notification:
-                send_reservation_mail(
-                    reservation,
-                    'reservation_made', event.language, to_managers=True
-                )
-            elif not reservation.autoapprovable and send_approval:
-                send_reservation_mail(
-                    reservation,
-                    'reservation_pending', event.language, to_managers=True
-                )
+    _get_mail_handler(event).on_reservations_confirmed(event)
 
 
 @grok.subscribe(IReservationApprovedEvent)
 def on_reservation_approved(event):
-    if not settings.get('send_email_to_reservees'):
-        return
-    if not event.reservation.autoapprovable:
-        send_reservation_mail(
-            event.reservation, 'reservation_approved', event.language
-        )
+    _get_mail_handler(event).on_reservation_approved(event)
 
 
 @grok.subscribe(IReservationDeniedEvent)
 def on_reservation_denied(event):
-    if not settings.get('send_email_to_reservees'):
-        return
-    if not event.reservation.autoapprovable:
-        send_reservation_mail(
-            event.reservation, 'reservation_denied', event.language
-        )
+    _get_mail_handler(event).on_reservation_denied(event)
 
 
 @grok.subscribe(IReservationRevokedEvent)
 def on_reservation_revoked(event):
-    if not settings.get('send_email_to_reservees'):
-        return
-
-    if not event.send_email:
-        return
-
-    send_reservation_mail(
-        event.reservation, 'reservation_revoked', event.language,
-        to_managers=False, revocation_reason=event.reason
-    )
+    _get_mail_handler(event).on_reservation_revoked(event)
 
 
 @grok.subscribe(IReservationUpdatedEvent)
 def on_reservation_updated(event):
-    if not event.time_changed and event.old_data == event.reservation.data:
-        return
+    _get_mail_handler(event).on_reservation_updated(event)
 
-    if settings.get('send_email_to_reservees'):
+
+class NotificationMailHandler(object):
+    implements(INotificationMailHandler)
+    adapts(Interface)
+
+    def __init__(self, request):
+        self.request = request
+
+    def on_reservations_confirmed(self, event):
+        # send one mail to the reservee
+        if settings.get('send_email_to_reservees'):
+            send_reservations_confirmed(event.reservations, event.language)
+
+        send_notification = settings.get('send_email_to_managers')
+        send_approval = settings.get('send_approval_email_to_managers')
+        # send many mails to the admins
+        if send_notification or send_approval:
+            for reservation in event.reservations:
+
+                if reservation.autoapprovable and send_notification:
+                    send_reservation_mail(
+                        reservation,
+                        'reservation_made', event.language, to_managers=True
+                    )
+                elif not reservation.autoapprovable and send_approval:
+                    send_reservation_mail(
+                        reservation,
+                        'reservation_pending', event.language, to_managers=True
+                    )
+
+    def on_reservation_approved(self, event):
+        if not settings.get('send_email_to_reservees'):
+            return
+        if not event.reservation.autoapprovable:
+            send_reservation_mail(
+                event.reservation, 'reservation_approved', event.language
+            )
+
+    def on_reservation_denied(self, event):
+        if not settings.get('send_email_to_reservees'):
+                return
+        if not event.reservation.autoapprovable:
+            send_reservation_mail(
+                event.reservation, 'reservation_denied', event.language
+            )
+
+    def on_reservation_revoked(self, event):
+        if not settings.get('send_email_to_reservees'):
+            return
+
+        if not event.send_email:
+            return
+
         send_reservation_mail(
-            event.reservation, 'reservation_changed', event.language,
-            to_managers=False
+            event.reservation, 'reservation_revoked', event.language,
+            to_managers=False, revocation_reason=event.reason
         )
 
-    if settings.get('send_email_to_managers'):
-        send_reservation_mail(
-            event.reservation, 'reservation_updated', event.language,
-            to_managers=True
-        )
+    def on_reservation_updated(self, event):
+        if not event.time_changed and event.old_data == event.reservation.data:
+            return
+
+        if settings.get('send_email_to_reservees'):
+            send_reservation_mail(
+                event.reservation, 'reservation_changed', event.language,
+                to_managers=False
+            )
+
+        if settings.get('send_email_to_managers'):
+            send_reservation_mail(
+                event.reservation, 'reservation_updated', event.language,
+                to_managers=True
+            )
 
 
 class EmailTemplate(Item):
