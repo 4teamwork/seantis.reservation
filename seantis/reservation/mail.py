@@ -68,13 +68,16 @@ class NotificationMailHandler(object):
     implements(INotificationMailHandler)
     adapts(Interface)
 
+    confirmed_class = None
+
     def __init__(self, request):
         self.request = request
 
     def on_reservations_confirmed(self, event):
         # send one mail to the reservee
         if settings.get('send_email_to_reservees'):
-            send_reservations_confirmed(event.reservations, event.language)
+            self.send_reservations_confirmed(event.reservations,
+                                             event.language)
 
         send_notification = settings.get('send_email_to_managers')
         send_approval = settings.get('send_approval_email_to_managers')
@@ -137,8 +140,69 @@ class NotificationMailHandler(object):
                 to_managers=True
             )
 
+    def send_reservations_confirmed(self, reservations, language):
+
+        mail_class = self.confirmed_class or ReservationMail
+        sender = utils.get_site_email_sender()
+
+        if not sender:
+            log.warn('Cannot send email as no sender is configured')
+            return
+
+        # load resources
+        resources = dict()
+        for reservation in reservations:
+
+            if not reservation.resource in resources:
+                resources[reservation.resource] = utils.get_resource_by_uuid(
+                    reservation.resource
+                ).getObject()
+
+                if not resources[reservation.resource]:
+                    log.warn(
+                        'Cannot send email as the resource does not exist')
+                    return
+
+        # send reservations grouped by reservee email
+        groupkey = lambda r: r.email
+        by_recipient = groupby(
+            sorted(reservations, key=groupkey), key=groupkey)
+
+        for recipient, grouped_reservations in by_recipient:
+
+            lines = []
+
+            for reservation in grouped_reservations:
+
+                resource = resources[reservation.resource]
+
+                prefix = '' if reservation.autoapprovable else '* '
+                lines.append(prefix + utils.get_resource_title(resource))
+
+                for start, end in reservation.timespans():
+                    lines.append(utils.display_date(start, end))
+
+                lines.append('')
+
+            # differs between resources
+            subject, body = get_email_content(
+                resource, 'reservation_received', language
+            )
+
+            mail = mail_class(
+                resource, reservation,
+                sender=sender,
+                recipient=recipient,
+                subject=subject,
+                body=body,
+                reservations=lines[:-1]
+            )
+
+            send_mail(resource, mail)
+
 
 class EmailTemplate(Item):
+
     def get_title(self):
         return _(u'Email Template') + u' ' + \
             utils.native_language_name(self.language)
@@ -217,63 +281,6 @@ def get_email_content(context, email_type, language):
         return subject, body
 
     return templates[email_type].get(language)
-
-
-def send_reservations_confirmed(reservations, language):
-    sender = utils.get_site_email_sender()
-
-    if not sender:
-        log.warn('Cannot send email as no sender is configured')
-        return
-
-    # load resources
-    resources = dict()
-    for reservation in reservations:
-
-        if not reservation.resource in resources:
-            resources[reservation.resource] = utils.get_resource_by_uuid(
-                reservation.resource
-            ).getObject()
-
-            if not resources[reservation.resource]:
-                log.warn('Cannot send email as the resource does not exist')
-                return
-
-    # send reservations grouped by reservee email
-    groupkey = lambda r: r.email
-    by_recipient = groupby(sorted(reservations, key=groupkey), key=groupkey)
-
-    for recipient, grouped_reservations in by_recipient:
-
-        lines = []
-
-        for reservation in grouped_reservations:
-
-            resource = resources[reservation.resource]
-
-            prefix = '' if reservation.autoapprovable else '* '
-            lines.append(prefix + utils.get_resource_title(resource))
-
-            for start, end in reservation.timespans():
-                lines.append(utils.display_date(start, end))
-
-            lines.append('')
-
-        # differs between resources
-        subject, body = get_email_content(
-            resource, 'reservation_received', language
-        )
-
-        mail = ReservationMail(
-            resource, reservation,
-            sender=sender,
-            recipient=recipient,
-            subject=subject,
-            body=body,
-            reservations=lines[:-1]
-        )
-
-        send_mail(resource, mail)
 
 
 def send_reservation_mail(reservation, email_type, language,
@@ -377,7 +384,7 @@ class ReservationMail(ReservationDataView, ReservationUrls):
                         self.display_reservation_data(value['value'])
                     )
                     lines.append((u'\t{}: {}'.format(description, val))
-                )
+                                 )
 
             p['data'] = u'\n'.join(lines)
 
@@ -459,8 +466,8 @@ def create_email(sender, recipient, bcc, subject, body):
     msg['From'] = formataddr((sender_name, sender_addr))
     msg['To'] = formataddr((recipient_name, recipient_addr))
     msg['Bcc'] = ', '.join(formataddr((bcc_name, bcc_addr))
-                                     for bcc_name, bcc_addr
-                                     in bcc_pairs)
+                           for bcc_name, bcc_addr
+                           in bcc_pairs)
     msg['Subject'] = Header(unicode(subject), header_charset)
 
     return msg
