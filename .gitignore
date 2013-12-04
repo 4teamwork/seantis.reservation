@@ -8,12 +8,9 @@
 .mr.developer.cfg
 .svn
 bin
-bootstrap.py
 build
 buildout.cfg
-database.cfg
 develop-eggs
-develop.cfg
 dist
 downloads
 eggs
@@ -21,4 +18,3 @@ parts
 src
 test_database.py
 var
-versions.cfg
