@@ -1,12 +1,17 @@
 from App.config import getConfiguration, setConfiguration
-from plone.app.testing import PloneSandboxLayer
-from plone.app.testing import PLONE_FIXTURE
-from plone.app.testing import IntegrationTesting
+from Testing import ZopeTestCase
+from ftw.builder.testing import BUILDER_LAYER
+from ftw.builder.testing import functional_session_factory
+from ftw.builder.testing import set_builder_session_factory
 from plone.app.testing import FunctionalTesting
+from plone.app.testing import IntegrationTesting
+from plone.app.testing import PLONE_FIXTURE
+from plone.app.testing import PloneSandboxLayer
 from plone.app.testing import applyProfile
 from plone.app.testing import quickInstallProduct
 from plone.testing import z2
-from Testing import ZopeTestCase
+from seantis.reservation.tests import builders  # init builder config
+
 
 try:
     from seantis.reservation import test_database
@@ -18,7 +23,7 @@ except ImportError:
 
 class SqlLayer(PloneSandboxLayer):
 
-    default_bases = (PLONE_FIXTURE,)
+    defaultBases = (PLONE_FIXTURE, BUILDER_LAYER)
 
     class Session(dict):
         def set(self, key, value):
@@ -67,6 +72,7 @@ class SqlLayer(PloneSandboxLayer):
     def tearDownZope(self, app):
         z2.uninstallProduct(app, 'seantis.reservation')
 
+
 SQL_FIXTURE = SqlLayer()
 
 SQL_INTEGRATION_TESTING = IntegrationTesting(
@@ -75,6 +81,7 @@ SQL_INTEGRATION_TESTING = IntegrationTesting(
 )
 
 SQL_FUNCTIONAL_TESTING = FunctionalTesting(
-    bases=(SQL_FIXTURE, ),
+    bases=(SQL_FIXTURE,
+           set_builder_session_factory(functional_session_factory)),
     name="SqlLayer:Functional"
 )

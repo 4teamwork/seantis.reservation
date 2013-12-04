@@ -18,10 +18,14 @@ tests_require = [
     'collective.betterbrowser [pyquery]',
     'collective.testcaselayer',
     'plone.app.testing',
+    'ftw.testing',
+    'ftw.builder',
 ]
+
 multilingual_require = [
     'plone.app.multilingual [dexterity]',
 ]
+
 postgres_require = [
     'psycopg2',
 ]

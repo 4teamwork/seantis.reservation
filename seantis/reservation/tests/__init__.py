@@ -1,36 +1,27 @@
-import unittest2 as unittest
-
-from sqlalchemy import create_engine
-
-from zope import event
-from zope.component import getUtility
-from zope.security.management import newInteraction, endInteraction
-
 from Acquisition import aq_base
-from zope.component import getSiteManager
+from Products.CMFCore.utils import getToolByName
 from Products.CMFPlone.tests.utils import MockMailHost
 from Products.MailHost.interfaces import IMailHost
-
-from plone.testing import z2
-from plone.dexterity.utils import createContentInContainer
+from collective.betterbrowser import new_browser
+from lxml.cssselect import CSSSelector
 from plone.app.testing import TEST_USER_NAME, TEST_USER_ID
 from plone.app.testing import login, logout, setRoles
-
-from collective.betterbrowser import new_browser
-
-from seantis.reservation import setuphandlers
-from seantis.reservation.utils import getSite
-from seantis.reservation.session import ISessionUtility
-
-from seantis.reservation.testing import SQL_INTEGRATION_TESTING
-from seantis.reservation.testing import SQL_FUNCTIONAL_TESTING
-
+from plone.dexterity.utils import createContentInContainer
+from plone.testing import z2
 from seantis.reservation import maintenance
-
-from Products.CMFCore.utils import getToolByName
-import lxml.html
-from lxml.cssselect import CSSSelector
+from seantis.reservation import setuphandlers
+from seantis.reservation.session import ISessionUtility
 from seantis.reservation.session import Session
+from seantis.reservation.testing import SQL_FUNCTIONAL_TESTING
+from seantis.reservation.testing import SQL_INTEGRATION_TESTING
+from seantis.reservation.utils import getSite
+from sqlalchemy import create_engine
+from zope import event
+from zope.component import getSiteManager
+from zope.component import getUtility
+from zope.security.management import newInteraction, endInteraction
+import lxml.html
+import unittest2 as unittest
 
 
 class TestCase(unittest.TestCase):
@@ -41,6 +32,7 @@ class TestCase(unittest.TestCase):
         self.portal = self.layer['portal']
 
         # setup mock mail host
+        # XXX remove in favour of fw.testing.Mailing
         self._original_MailHost = self.portal.MailHost
         self.portal.MailHost = mailhost = MockMailHost('MailHost')
         sm = getSiteManager(context=self.portal)
@@ -60,6 +52,7 @@ class TestCase(unittest.TestCase):
     def tearDown(self):
 
         # reset original mail host
+        # XXX remove in favour of fw.testing.Mailing
         self.portal.MailHost = self._original_MailHost
         sm = getSiteManager(context=self.portal)
         sm.unregisterUtility(provided=IMailHost)

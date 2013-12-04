@@ -1,8 +1,10 @@
 from plone.app.testing import TEST_USER_ID
-
+from seantis.reservation.interfaces import INotificationMailHandler
+from seantis.reservation.mail import NotificationMailHandler
+from seantis.reservation.mail import get_managers_by_context
 from seantis.reservation.session import serialized
 from seantis.reservation.tests import IntegrationTestCase
-from seantis.reservation.mail import get_managers_by_context
+from zope.interface.verify import verifyClass
 
 
 class MailTestCase(IntegrationTestCase):
@@ -27,3 +29,6 @@ class MailTestCase(IntegrationTestCase):
             sorted(get_managers_by_context(resource)),
             sorted(['ted', 'brad'])
         )
+
+    def test_implements_interface(self):
+        verifyClass(INotificationMailHandler, NotificationMailHandler)
