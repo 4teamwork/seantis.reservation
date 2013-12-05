@@ -342,6 +342,10 @@ class ReservationMail(ReservationDataView, ReservationUrls):
     bcc = tuple()
 
     def __init__(self, resource, reservation, **kwargs):
+
+        self.reservation = reservation
+        self.resource = resource
+
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
