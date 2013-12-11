@@ -1,4 +1,3 @@
-from copy import deepcopy
 from datetime import datetime
 from ftw.builder.builder import Builder
 from ftw.builder.builder import create
@@ -9,13 +8,9 @@ from seantis.reservation.db import Scheduler
 from seantis.reservation.events import ReservationApprovedEvent
 from seantis.reservation.events import ReservationDeniedEvent
 from seantis.reservation.events import ReservationRevokedEvent
-from seantis.reservation.events import ReservationSlotsRemovedEvent
-from seantis.reservation.events import ReservationUpdatedEvent
 from seantis.reservation.events import ReservationsConfirmedEvent
 from seantis.reservation.session import serialized
-from seantis.reservation.testing import SQL_FUNCTIONAL_TESTING
 from seantis.reservation.tests import FunctionalTestCase
-from uuid import uuid1 as uuid
 from zope.event import notify
 
 
