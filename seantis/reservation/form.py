@@ -391,11 +391,8 @@ class ReservationDataView(object):
         if value is False:
             return _(u'No')
 
-        if isinstance(value, basestring):
-            return utils.decode_for_display(value)
-
-        if isinstance(value, list):
-            return ', '.join(utils.decode_for_display(v) for v in value)
+        if value is None:
+            return ''
 
         return value
 
