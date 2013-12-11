@@ -397,6 +397,9 @@ class ReservationDataView(object):
         if isinstance(value, list):
             return ', '.join(utils.decode_for_display(v) for v in value)
 
+        if value is None:
+            return ''
+
         return value
 
     def decode_for_display(self, value):
