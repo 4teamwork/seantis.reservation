@@ -86,12 +86,12 @@ class NotificationMailHandler(object):
             for reservation in event.reservations:
 
                 if reservation.autoapprovable and send_notification:
-                    send_reservation_mail(
+                    self.send_reservation_mail(
                         reservation,
                         'reservation_made', event.language, to_managers=True
                     )
                 elif not reservation.autoapprovable and send_approval:
-                    send_reservation_mail(
+                    self.send_reservation_mail(
                         reservation,
                         'reservation_pending', event.language, to_managers=True
                     )
@@ -100,7 +100,7 @@ class NotificationMailHandler(object):
         if not settings.get('send_email_to_reservees'):
             return
         if not event.reservation.autoapprovable:
-            send_reservation_mail(
+            self.send_reservation_mail(
                 event.reservation, 'reservation_approved', event.language
             )
 
@@ -108,7 +108,7 @@ class NotificationMailHandler(object):
         if not settings.get('send_email_to_reservees'):
                 return
         if not event.reservation.autoapprovable:
-            send_reservation_mail(
+            self.send_reservation_mail(
                 event.reservation, 'reservation_denied', event.language
             )
 
@@ -119,7 +119,7 @@ class NotificationMailHandler(object):
         if not event.send_email:
             return
 
-        send_reservation_mail(
+        self.send_reservation_mail(
             event.reservation, 'reservation_revoked', event.language,
             to_managers=False, revocation_reason=event.reason
         )
@@ -129,13 +129,13 @@ class NotificationMailHandler(object):
             return
 
         if settings.get('send_email_to_reservees'):
-            send_reservation_mail(
+            self.send_reservation_mail(
                 event.reservation, 'reservation_changed', event.language,
                 to_managers=False
             )
 
         if settings.get('send_email_to_managers'):
-            send_reservation_mail(
+            self.send_reservation_mail(
                 event.reservation, 'reservation_updated', event.language,
                 to_managers=True
             )
@@ -200,6 +200,80 @@ class NotificationMailHandler(object):
 
             send_mail(resource, mail)
 
+    def get_manager_emails_by_context(self, context):
+        managers = get_managers_by_context(context)
+
+        if not managers:
+            return []
+
+        acl = utils.getToolByName(context, 'acl_users')
+        groups = acl.source_groups.getGroupIds()
+
+        # remove the groups and replace them with users
+        userids = []
+        for man in managers:
+            if man in groups:
+                userids.extend(acl.source_groups.getGroupById(man).getMemberIds())
+            else:
+                userids.append(man)
+
+        userids = set(userids)
+
+        # go through the users and get their emails
+        emails = []
+        for uid in userids:
+            user = acl.getUserById(uid)
+
+            if user:
+                emails.append(user.getProperty('email'))
+            else:
+                log.warn('The manager with the id %s does not exist' % uid)
+
+        return emails
+
+    def send_reservation_mail(self, reservation, email_type, language,
+                              to_managers=False, revocation_reason=u'',
+                              bcc=tuple(), mail_class=None):
+        mail_class = mail_class or ReservationMail
+        resource = utils.get_resource_by_uuid(reservation.resource)
+
+        # the resource doesn't currently exist in testing so we quietly
+        # exit. This should be changed => #TODO
+        if not resource:
+            log.warn('Cannot send email as the resource does not exist')
+            return
+
+        sender = utils.get_site_email_sender()
+
+        if not sender:
+            log.warn('Cannot send email as no sender is configured')
+            return
+
+        resource = resource.getObject()
+
+        if to_managers:
+            recipients = self.get_manager_emails_by_context(resource)
+            if not recipients:
+                log.warn("Couldn't find a manager to send an email to")
+                return
+        else:
+            recipients = [reservation.email]
+
+        subject, body = get_email_content(resource, email_type, language)
+
+        for recipient in recipients:
+            mail = mail_class(
+                resource, reservation,
+                sender=sender,
+                recipient=recipient,
+                bcc=bcc,
+                subject=subject,
+                body=body,
+                revocation_reason=revocation_reason
+            )
+
+            send_mail(resource, mail)
+
 
 class EmailTemplate(Item):
 
@@ -234,38 +308,6 @@ def get_managers_by_context(context):
     return get_managers_by_context(context.aq_inner.aq_parent)
 
 
-def get_manager_emails_by_context(context):
-    managers = get_managers_by_context(context)
-
-    if not managers:
-        return []
-
-    acl = utils.getToolByName(context, 'acl_users')
-    groups = acl.source_groups.getGroupIds()
-
-    # remove the groups and replace them with users
-    userids = []
-    for man in managers:
-        if man in groups:
-            userids.extend(acl.source_groups.getGroupById(man).getMemberIds())
-        else:
-            userids.append(man)
-
-    userids = set(userids)
-
-    # go through the users and get their emails
-    emails = []
-    for uid in userids:
-        user = acl.getUserById(uid)
-
-        if user:
-            emails.append(user.getProperty('email'))
-        else:
-            log.warn('The manager with the id %s does not exist' % uid)
-
-    return emails
-
-
 def get_email_content(context, email_type, language):
     user_templates = utils.portal_type_by_context(
         context, portal_type='seantis.reservation.emailtemplate'
@@ -281,50 +323,6 @@ def get_email_content(context, email_type, language):
         return subject, body
 
     return templates[email_type].get(language)
-
-
-def send_reservation_mail(reservation, email_type, language,
-                          to_managers=False, revocation_reason=u'',
-                          bcc=tuple(), mail_class=None):
-    mail_class = mail_class or ReservationMail
-    resource = utils.get_resource_by_uuid(reservation.resource)
-
-    # the resource doesn't currently exist in testing so we quietly
-    # exit. This should be changed => #TODO
-    if not resource:
-        log.warn('Cannot send email as the resource does not exist')
-        return
-
-    sender = utils.get_site_email_sender()
-
-    if not sender:
-        log.warn('Cannot send email as no sender is configured')
-        return
-
-    resource = resource.getObject()
-
-    if to_managers:
-        recipients = get_manager_emails_by_context(resource)
-        if not recipients:
-            log.warn("Couldn't find a manager to send an email to")
-            return
-    else:
-        recipients = [reservation.email]
-
-    subject, body = get_email_content(resource, email_type, language)
-
-    for recipient in recipients:
-        mail = mail_class(
-            resource, reservation,
-            sender=sender,
-            recipient=recipient,
-            bcc=bcc,
-            subject=subject,
-            body=body,
-            revocation_reason=revocation_reason
-        )
-
-        send_mail(resource, mail)
 
 
 def send_mail(context, mail):
