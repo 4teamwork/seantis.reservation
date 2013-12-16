@@ -321,6 +321,23 @@ class Slots(grok.View, CalendarRequest):
     def scheduler(self):
         return self.context.scheduler()
 
+    def _add_separate_reservation_links(self, items, allocation, start, end):
+        items.menu_add(_(u'Reservations'),  _(u'Reserve'), 'reserve',
+                dict(id=allocation.id, start=start, end=end), 'overlay'
+        )
+        items.default_url(
+            'reserve', dict(id=allocation.id, start=start, end=end)
+        )
+
+    def _add_group_reservation_links(self, items, allocation, start, end):
+        items.menu_add(_(u'Reservations'), _(u'Reserve'),
+                       'reserve-group', dict(group=allocation.group),
+                       'overlay'
+        )
+        items.default_url(
+            'reserve', dict(group=allocation.group)
+        )
+
     def urls(self, allocation):
         """Returns the options for the js contextmenu for the given allocation
         as well as other links associated with the event.
@@ -337,22 +354,11 @@ class Slots(grok.View, CalendarRequest):
         # Reservation
         res_add = lambda n, v, p, t: \
             items.menu_add(_(u'Reservations'), n, v, p, t)
+
         if allocation.is_separate:
-            res_add(
-                _(u'Reserve'), 'reserve',
-                dict(id=allocation.id, start=start, end=end), 'overlay'
-            )
-            items.default_url(
-                'reserve', dict(id=allocation.id, start=start, end=end)
-            )
+            self._add_separate_reservation_links(items, allocation, start, end)
         else:
-            res_add(
-                _(u'Reserve'), 'reserve-group', dict(group=allocation.group),
-                'overlay'
-            )
-            items.default_url(
-                'reserve', dict(group=allocation.group)
-            )
+            self._add_group_reservation_links(items, allocation, start, end)
 
         if allocation.in_recurrence:
             manage_params = dict(recurring_allocation_id=allocation.id)
