@@ -101,3 +101,64 @@ class TestHandlers(FunctionalTestCase):
         notify(ReservationsConfirmedEvent([self.reservation], self.language))
 
         self.assert_has_one_reservee_message()
+
+
+class TestHandlersWithNoneEmail(FunctionalTestCase):
+    """Test that fired events can handle reservations with no E-Mail.
+
+    """
+    @serialized
+    def setUp(self):
+        super(TestHandlersWithNoneEmail, self).setUp()
+
+        self.mailing = Mailing(self.layer['portal'])
+        self.mailing.set_up()
+
+        setRoles(self.portal, TEST_USER_ID, ['Manager'])
+        self.language = 'de'
+
+        self.resource = create(Builder('resource'))
+        self.scheduler = Scheduler(self.resource.uuid(),
+                                   language=self.language)
+
+        self.start = datetime(2012, 1, 1, 9, 00)
+        self.end = datetime(2012, 1, 1, 17, 00)
+        self.dates = (self.start, self.end,)
+
+        self.scheduler.allocate(self.dates, partly_available=True)
+        token = self.scheduler.reserve(None, self.dates, data=dict())
+        self.scheduler.approve_reservation(token)
+        self.reservation = self.scheduler.reservation_by_token(token).one()
+
+        self.mailing.reset()
+
+    def tearDown(self):
+        self.mailing.tear_down()
+        super(TestHandlersWithNoneEmail, self).tearDown()
+
+    @serialized
+    def test_approval_mail(self):
+        notify(ReservationApprovedEvent(self.reservation, self.language))
+        self.assertFalse(self.mailing.has_messages())
+
+    @serialized
+    def test_revocation_mail(self):
+        notify(ReservationRevokedEvent(self.reservation, self.language, '',
+                                       True))
+        self.assertFalse(self.mailing.has_messages())
+
+    @serialized
+    def test_reservation_denied(self):
+        notify(ReservationDeniedEvent(self.reservation, self.language))
+        self.assertFalse(self.mailing.has_messages())
+
+    @serialized
+    def test_reservation_revoked(self):
+        notify(ReservationRevokedEvent(self.reservation, self.language, '',
+                                       True))
+        self.assertFalse(self.mailing.has_messages())
+
+    @serialized
+    def test_reservation_confirmed(self):
+        notify(ReservationsConfirmedEvent([self.reservation], self.language))
+        self.assertFalse(self.mailing.has_messages())

@@ -149,10 +149,14 @@ class NotificationMailHandler(object):
             log.warn('Cannot send email as no sender is configured')
             return
 
+        # filter reservations with reservee email
+        reservations = [each for each in reservations if each.email]
+        if not reservations:
+            return
+
         # load resources
         resources = dict()
         for reservation in reservations:
-
             if not reservation.resource in resources:
                 resources[reservation.resource] = utils.get_resource_by_uuid(
                     reservation.resource
@@ -257,6 +261,8 @@ class NotificationMailHandler(object):
                 log.warn("Couldn't find a manager to send an email to")
                 return
         else:
+            if not reservation.email:
+                return
             recipients = [reservation.email]
 
         subject, body = get_email_content(resource, email_type, language)

@@ -73,7 +73,6 @@ class Reservation(TimestampMixin, ORMBase, OtherModels):
 
     email = Column(
         types.Unicode(254),
-        nullable=False
     )
 
     session_id = Column(
