@@ -1001,7 +1001,7 @@ msgstr "Ansichten die den Benutzern auf dem Kalender zur verfügung stehen."
 
 #: ./interfaces.py:777
 msgid "Visible on the calendar"
-msgstr ""
+msgstr "Im Kalender sichtbar"
 
 #: ./templates/reservations.pt:48
 msgid "Waitinglist"
