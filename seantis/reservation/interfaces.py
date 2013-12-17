@@ -31,6 +31,7 @@ from zope.component.hooks import getSite
 from zope.i18n import translate
 from zope.schema.interfaces import ITime
 from zope.interface.declarations import classImplements
+from plone.app.viewletmanager.manager import BaseOrderedViewletManager
 
 try:
     pkg_resources.get_distribution('plone.multilingual')
@@ -216,7 +217,7 @@ class IOverview(Interface):
 
 # not really where I want this code to be, but the code needs some reorganizing
 # because of circular imports and the like
-class OverviewletManager(grok.ViewletManager):
+class OverviewletManager(BaseOrderedViewletManager, grok.ViewletManager):
     """ Manages the viewlets shown in the overview. """
     grok.context(Interface)
     grok.name('seantis.reservation.overviewletmanager')

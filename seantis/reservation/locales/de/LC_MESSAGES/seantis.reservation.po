@@ -884,7 +884,7 @@ msgstr "Die Einteilung ist für den ganzen Tag gültig."
 
 #: ./export.py:16
 msgid "The default reservations export with every date in the resource having a separate record."
-msgstr "Der standartmässige Reservationen Export bei dem jedes Datum einen eigenen Eintrag hat."
+msgstr "Der standard Reservations-Export bei dem jedes Datum einen eigenen Eintrag hat."
 
 #: ./error.py:144
 msgid "The given reservation paramters are invalid."
