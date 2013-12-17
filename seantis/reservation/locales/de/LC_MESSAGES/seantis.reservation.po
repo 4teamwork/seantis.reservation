@@ -20,7 +20,7 @@ msgstr ""
 
 #: ./reports/latest_reservations.py:37
 msgid "${days} days ago, at ${time}"
-msgstr ""
+msgstr "Vor ${days} Tagen, um ${time}"
 
 #: ./interfaces.py:630
 msgid "%(reason)s - reason for revocation<br>"
@@ -151,7 +151,7 @@ msgstr "Verfügbare Ansichten"
 
 #: ./export.py:40
 msgid "CSV Format"
-msgstr ""
+msgstr "CSV Datei"
 
 #: ./interfaces.py:411
 msgid "Calendar date shown when opening the calendar."
@@ -188,7 +188,7 @@ msgstr "Reservationen abschliessen"
 
 #: ./exports/reservations.py:51
 msgid "Created"
-msgstr ""
+msgstr "Erstellt"
 
 #: ./interfaces.py:343
 msgid "DEPRECATED: Approve reservation requests"
@@ -282,7 +282,7 @@ msgstr "Einteilung bearbeiten"
 
 #: ./reserve.py:1029
 msgid "Edit reservation"
-msgstr ""
+msgstr "Reservation bearbeiten"
 
 #: ./exports/reservations.py:45
 #: ./interfaces.py:147
@@ -377,12 +377,12 @@ msgstr "Alles vor dieser Stunde wird im Kalender nicht angezeigt, was die Anzeig
 
 #: ./export.py:39
 msgid "Excel Format"
-msgstr ""
+msgstr "Excel Datei"
 
 #: ./export.py:95
 #: ./templates/utils.pt:25
 msgid "Export Reservations"
-msgstr ""
+msgstr "Reservationen exportieren"
 
 #: ./interfaces.py:461
 msgid "First hour must be smaller than last hour"
@@ -430,7 +430,7 @@ msgstr "Falls gewählt muss ein Reservations-Manager entscheiden ob eine Reserva
 
 #: ./interfaces.py:568
 msgid "If checked parts of the recurrance may be reserved. If not checked the recurrance must be reserved as a whole."
-msgstr ""
+msgstr "Falls gewählt könnten teile der Wiederholung reserviert werden. Falls nicht gewählt muss die gesamte Wiederholung als Ganzes reserviert werden."
 
 #: ./interfaces.py:308
 msgid "If the allocation is partly available users may reserve only a part of it (e.g. half of it). If not the allocation Must be reserved as a whole or not at all"
@@ -454,11 +454,11 @@ msgstr "Ungültige letzte volle Stunde"
 
 #: ./reserve.py:476
 msgid "Invalid reservation request"
-msgstr ""
+msgstr "Ungültige Reservations-Anfrage"
 
 #: ./export.py:41
 msgid "JSON Format"
-msgstr ""
+msgstr "JSON Datei"
 
 #: ./interfaces.py:644
 msgid "Language"
@@ -470,11 +470,11 @@ msgstr "Letzte volle Stunde"
 
 #: ./templates/utils.pt:15
 msgid "Latest Reservations"
-msgstr ""
+msgstr "Neuste Reservationen"
 
 #: ./export.py:26
 msgid "Like the normal reservations export, but with group-reservations spanning multiple days merged into single records."
-msgstr ""
+msgstr "Wie normale Reservations-Exporte, aber Gruppenreservationen, die mehrere Tage dauern, als einzelnen Eintrag."
 
 #: ./resource.py:385
 msgid "List"
@@ -694,11 +694,11 @@ msgstr "Reservationen"
 
 #: ./export.py:25
 msgid "Reservations (Compact)"
-msgstr ""
+msgstr "Reservationen (Kompakt)"
 
 #: ./export.py:15
 msgid "Reservations (Normal)"
-msgstr ""
+msgstr "Reservationen (Normal)"
 
 #: ./reserve.py:648
 msgid "Reservations Successfully Submitted"
@@ -710,7 +710,7 @@ msgstr "Reservationen können nicht über mehr als 24 Stunden gemacht werden"
 
 #: ./reports/latest_reservations.py:56
 msgid "Reservations in the last 30 days"
-msgstr ""
+msgstr "Reservationen der letzten 30 Tage"
 
 #: ./reserve.py:515
 #: ./resource.py:342
@@ -783,11 +783,11 @@ msgstr "Ansicht die beim Öffnen des Kalenders angezeigt wird."
 
 #: ./interfaces.py:829
 msgid "Send Email"
-msgstr ""
+msgstr "E-Mail verschicken"
 
 #: ./interfaces.py:830
 msgid "Send an email to the reservee informing him of the revocation"
-msgstr ""
+msgstr "Den User per E-Mail benachrichtigen."
 
 #: ./settings.py:57
 msgid "Send emails about made, approved and denied reservations to the user that made the reservation."
@@ -884,7 +884,7 @@ msgstr "Die Einteilung ist für den ganzen Tag gültig."
 
 #: ./export.py:16
 msgid "The default reservations export with every date in the resource having a separate record."
-msgstr ""
+msgstr "Der standartmässige Reservationen Export bei dem jedes Datum einen eigenen Eintrag hat."
 
 #: ./error.py:144
 msgid "The given reservation paramters are invalid."
@@ -973,7 +973,7 @@ msgstr "Zeitachse"
 
 #: ./reports/latest_reservations.py:28
 msgid "Today, at ${time}"
-msgstr ""
+msgstr "Heute, um ${time}"
 
 #: ./exports/reservations.py:44
 msgid "Token"
