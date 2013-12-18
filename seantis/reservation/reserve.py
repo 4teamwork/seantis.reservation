@@ -1088,7 +1088,7 @@ class ReservationDataEditForm(ReservationIdForm, ReservationSchemata):
                 if any(each.reservation_quota_limit == 1
                        for each in allocations):
                     hidden.append('quota')
-                if any(each.whole_day for each in allocations):
+                if not any(each.partly_available for each in allocations):
                     hidden.append('start_time')
                     hidden.append('end_time')
 
