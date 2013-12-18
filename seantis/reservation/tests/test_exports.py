@@ -54,16 +54,16 @@ class TestExports(IntegrationTestCase):
         self.assertEqual(len(dataset.headers), 11 + 4)
 
         self.assertEqual(dataset.dict[0]['Token'], utils.string_uuid(token1))
-        self.assertEqual(dataset.dict[0]['Mocktest.stop'], u'hammertime!')
-        self.assertEqual(dataset.dict[0]['Mocktest.bust'], u'a move!')
-        self.assertEqual(dataset.dict[0]['Mocktest.never'], None)
-        self.assertEqual(dataset.dict[0]['Mocktest.give'], None)
+        self.assertEqual(dataset.dict[0]['Mocktest: stop'], u'hammertime!')
+        self.assertEqual(dataset.dict[0]['Mocktest: bust'], u'a move!')
+        self.assertEqual(dataset.dict[0]['Mocktest: never'], None)
+        self.assertEqual(dataset.dict[0]['Mocktest: give'], None)
 
         self.assertEqual(dataset.dict[1]['Token'], utils.string_uuid(token2))
-        self.assertEqual(dataset.dict[1]['Mocktest.stop'], None)
-        self.assertEqual(dataset.dict[1]['Mocktest.bust'], None)
-        self.assertEqual(dataset.dict[1]['Mocktest.never'], u'gonna')
-        self.assertEqual(dataset.dict[1]['Mocktest.give'], u'you up')
+        self.assertEqual(dataset.dict[1]['Mocktest: stop'], None)
+        self.assertEqual(dataset.dict[1]['Mocktest: bust'], None)
+        self.assertEqual(dataset.dict[1]['Mocktest: never'], u'gonna')
+        self.assertEqual(dataset.dict[1]['Mocktest: give'], u'you up')
 
         # just make sure these don't raise exceptions
         dataset.xls
@@ -107,7 +107,7 @@ class TestExports(IntegrationTestCase):
         self.assertEqual(dataset[0][0], None)
 
     def test_export_view(self):
-        
+
         class MyExportView(ExportView):
             pass
 
@@ -130,7 +130,7 @@ class TestExports(IntegrationTestCase):
             file_extension = 'json'
 
         view = MyJsonExportView(self.portal, self.request())
-        
+
         view.request['source'] = 'reservations'
         self.assertEqual('[]', view.render())
 
