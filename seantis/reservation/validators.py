@@ -2,6 +2,7 @@ from seantis.reservation.allocate import AllocationForm
 from seantis.reservation.interfaces import IResource
 from z3c.form import interfaces
 from z3c.form import validator
+from z3c.form.interfaces import NO_VALUE
 from zope.component import provideAdapter
 import z3c.form.interfaces
 import zope.interface
@@ -14,14 +15,18 @@ class AllocationFormTimeValidator(validator.SimpleFieldValidator):
 
     """
     def validate(self, value, force=False):
-        widget = self.view.get_widget('whole_day')
-        if widget:
-            raw = widget.extract()
-            whole_day = interfaces.IDataConverter(widget).toFieldValue(raw)
-            if whole_day:
-                return
-
+        if self._is_whole_day():
+            return
         return super(AllocationFormTimeValidator, self).validate(value, force)
+
+    def _is_whole_day(self):
+        widget = self.view.get_widget('whole_day')
+        if not widget:
+            return False
+        raw = widget.extract()
+        if raw is NO_VALUE:
+            return False
+        return interfaces.IDataConverter(widget).toFieldValue(raw)
 
 
 validator.WidgetValidatorDiscriminators(
