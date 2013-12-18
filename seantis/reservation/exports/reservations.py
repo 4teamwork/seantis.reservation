@@ -1,19 +1,20 @@
-import tablib
-
-from zope import i18n
-from zope.i18nmessageid import Message
-
-from seantis.reservation import _
 from seantis.reservation import Session
+from seantis.reservation import _
 from seantis.reservation import utils
 from seantis.reservation.form import ReservationDataView
 from seantis.reservation.models import Reservation
+from zope import i18n
+from zope.component.hooks import getSite
+from zope.i18n import translate
+from zope.i18nmessageid import Message
+import tablib
 
 
 class Translator(object):
 
     def __init__(self, language):
         self.language = language
+        self.context = getSite().REQUEST
 
     def translate(self, obj):
         if isinstance(obj, Message):
@@ -26,7 +27,8 @@ class Translator(object):
 
     def translate_text(self, text):
         assert isinstance(text, Message)
-        return i18n.translate(text, target_language=self.language)
+        return i18n.translate(text, context=self.context,
+                              domain='seantis.reservation')
 
     def translate_list(self, _list):
         # translate the values in the record
@@ -53,6 +55,7 @@ def basic_headers():
     ]
 
 
+# XXX: maybe export stuff could be a class and inherit from ReservationDataView
 def dataset(resources, language, compact=False):
     """ Takes a list of resources and returns a tablib dataset filled with
     all reservations of these resources. The json data of the reservations
@@ -135,9 +138,16 @@ def fetch_records(resources):
     return query.all()
 
 
+def display_description(value):
+    context = getSite().REQUEST
+    return translate(value, context=context, domain='seantis.reservation')
+
+
 def fieldkey(form, field):
     """ Returns the fieldkey for any given json data field + form. """
-    return '%s.%s' % (form["desc"], field["desc"])
+
+    return '%s: %s' % (display_description(form["desc"]),
+                       display_description(field["desc"]))
 
 
 def additional_headers(reservations):
@@ -146,7 +156,6 @@ def additional_headers(reservations):
     """
 
     formdata = [r.data.values() for r in reservations if r.data]
-
     headers = []
     for forms in formdata:
         for form in forms:
