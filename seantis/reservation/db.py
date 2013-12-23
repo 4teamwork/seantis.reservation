@@ -259,7 +259,6 @@ def remove_expired_reservation_sessions(expiration_date=None):
     however.
 
     """
-
     expired_sessions = find_expired_reservation_sessions(expiration_date)
 
     # remove those session ids
@@ -269,7 +268,7 @@ def remove_expired_reservation_sessions(expiration_date=None):
 
         for reservation in query:
             token = reservation.token
-            reservation.get_resource().scheduler().remove_reservation(token)
+            Scheduler(reservation.resource).remove_reservation(token)
 
     return expired_sessions
 
