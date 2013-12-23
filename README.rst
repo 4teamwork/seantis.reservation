@@ -396,10 +396,10 @@ people in the waitinglist is shown on the allcation itself.
 .. |calendar example| image:: https://github.com/seantis/seantis.reservation/raw/master/screenshots/milliways-calendar.png
 .. |reserve example| image:: https://github.com/seantis/seantis.reservation/raw/master/screenshots/milliways-reserve.png
 .. |confirm example| image:: https://github.com/seantis/seantis.reservation/raw/master/screenshots/milliways-confirm.png
-.. |Build Status| image:: https://secure.travis-ci.org/seantis/seantis.reservation.png
-   :target: http://travis-ci.org/seantis/seantis.reservation
-.. |Test Coverage| image:: https://coveralls.io/repos/seantis/seantis.reservation/badge.png?branch=master
-   :target: https://coveralls.io/r/seantis/seantis.reservation?branch=master
+.. |Build Status| image:: https://secure.travis-ci.org/4teamwork/seantis.reservation.png
+   :target: http://travis-ci.org/4teamwork/seantis.reservation
+.. |Test Coverage| image:: https://coveralls.io/repos/4teamwork/seantis.reservation/badge.png?branch=emf
+   :target: https://coveralls.io/r/4teamwork/seantis.reservation?branch=emf
 .. |PyPI Release| image:: https://pypip.in/v/seantis.reservation/badge.png
     :target: https://crate.io/packages/seantis.reservation
     :alt: Latest PyPI version
