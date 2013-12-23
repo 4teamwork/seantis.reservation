@@ -3,6 +3,7 @@ from Testing import ZopeTestCase
 from ftw.builder.testing import BUILDER_LAYER
 from ftw.builder.testing import functional_session_factory
 from ftw.builder.testing import set_builder_session_factory
+from plone import api
 from plone.app.testing import FunctionalTesting
 from plone.app.testing import IntegrationTesting
 from plone.app.testing import PLONE_FIXTURE
@@ -68,9 +69,17 @@ class SqlLayer(PloneSandboxLayer):
         quickInstallProduct(portal, 'plone.formwidget.datetime')
         quickInstallProduct(portal, 'plone.formwidget.recurrence')
         applyProfile(portal, 'seantis.reservation:default')
+        self._configure_default_workflow()
 
     def tearDownZope(self, app):
         z2.uninstallProduct(app, 'seantis.reservation')
+
+    def _configure_default_workflow(self):
+        """Workflows are not configured by default.
+        """
+
+        wftool = api.portal.get_tool(name='portal_workflow')
+        wftool.setDefaultChain('simple_publication_workflow')
 
 
 SQL_FIXTURE = SqlLayer()
