@@ -423,7 +423,7 @@ class ReservationForm(
                 if allocation.reservation_quota_limit == 1:
                     hidden.append('quota')
 
-                if allocation.whole_day:
+                if not allocation.partly_available:
                     hidden.append('start_time')
                     hidden.append('end_time')
 
@@ -528,7 +528,8 @@ class ReservationForm(
 
         self.inject_missing_data(data, allocation)
 
-        dates = utils.get_dates(data, is_whole_day=allocation.whole_day)
+        spans_day = allocation.whole_day and not allocation.partly_available
+        dates = utils.get_dates(data, is_whole_day=spans_day)
         quota = int(data.get('quota', 1))
         description = data.get('description')
 
