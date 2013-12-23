@@ -168,6 +168,5 @@ class IntegrationTestCase(TestCase):
         Session.remove()
 
 
-# to use with the browser which does it's own security interactions
 class FunctionalTestCase(TestCase):
     layer = SQL_FUNCTIONAL_TESTING

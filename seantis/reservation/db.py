@@ -323,25 +323,16 @@ def remove_expired_reservation_sessions(expiration_date=None):
     however.
 
     """
-
     expired_sessions = find_expired_reservation_sessions(expiration_date)
 
     # remove those session ids
     if expired_sessions:
-        reservations = Session.query(Reservation)
-        reservations = reservations.filter(
-            Reservation.session_id.in_(expired_sessions)
-        )
+        query = Session.query(Reservation)
+        query = query.filter(Reservation.session_id.in_(expired_sessions))
 
-        slots = Session.query(ReservedSlot)
-        slots = slots.filter(
-            ReservedSlot.reservation_token.in_(
-                reservations.with_entities(Reservation.token).subquery()
-            )
-        )
-
-        slots.delete('fetch')
-        reservations.delete('fetch')
+        for reservation in query:
+            token = reservation.token
+            Scheduler(reservation.resource).remove_reservation(token)
 
     return expired_sessions
 
@@ -866,7 +857,7 @@ class Scheduler(object):
         for allocation in allocations:
             if not allocation.is_transient:
                 Session.delete(allocation)
-        
+
         remove_orphan_recurrences()
 
     def _reserve_sanity_check(self, dates, quota):
