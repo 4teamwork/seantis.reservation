@@ -5,6 +5,9 @@ Changelog
 1.1 (unreleased)
 ----------------
 
+- Use default styling for error messages in forms.
+  [Julian Infanger]
+
 - Fix a bug where blocked periods were not removed when removing reserved
   slots for a sinlge day or multiple days without removing the whole
   reservation.
