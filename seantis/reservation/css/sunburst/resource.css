@@ -12,7 +12,7 @@
     padding: 3px 0 0 5px;
 }
 
-#miniTip_c a { 
+#miniTip_c a {
     padding: 4px 0 2px 6px;
     display: block;
     color: black;
@@ -42,12 +42,12 @@
     color: white !important;
 }
 .fc-event-title, .fc-event-time {
-     font-size: 11px !important;   
+     font-size: 11px !important;
 }
 
 /* formular tabs */
 .seantis-reservation-form ul.formTabs {
-    margin: 5px 0 5px 0;   
+    margin: 5px 0 5px 0;
 }
 
 .seantis-reservation-form ul.formTabs li.formTab {
@@ -81,18 +81,18 @@
 .seantis-reservation-form .formTab a:hover {
     font-weight: normal;
     border-color: #bbb;
-    background-color: #ddd;   
+    background-color: #ddd;
 }
 
 .seantis-reservation-form .formTab a.selected:hover {
     font-weight: bold;
     border-color: #57a9cd;
-    background-color: #c1e0ee;   
+    background-color: #c1e0ee;
 }
 
 /* form buttons */
 .seantis-reservation-form .formControls {
-    margin-left: 0;   
+    margin-left: 0;
 }
 
 /* your reservations */
@@ -144,7 +144,7 @@
 }
 
 .your-reservations-view ul span:first-child {
-    font-weight: bold;   
+    font-weight: bold;
 }
 
 #content .your-reservations .your_reservations_link {
@@ -176,7 +176,7 @@
 }
 
 .reservation-title {
-    width: 100%; 
+    width: 100%;
     height: 25px;
     background-color: #175e90;
     margin-top: 20px;
@@ -184,10 +184,10 @@
 }
 
 .reservation-pending .reservation-title {
-    background-color: #888;   
+    background-color: #888;
 }
 
-/*Since the default plone theme uses !important in conjunction with an 
+/*Since the default plone theme uses !important in conjunction with an
 id selector we need quite the selectors to get a higher weight...*/
 .reservation-title h3,
 #content .reservation-title a,
@@ -209,7 +209,7 @@ id selector we need quite the selectors to get a higher weight...*/
 }
 
 #content .reservation-info {
-    margin: -10px auto 10px auto;   
+    margin: -10px auto 10px auto;
 }
 
 #content .inline-reservations {
@@ -222,8 +222,8 @@ id selector we need quite the selectors to get a higher weight...*/
 
 #content #inline-page {
     border: solid 1px #dedede;
-    background-color: #eee; 
-    margin-top: 20px;  
+    background-color: #eee;
+    margin-top: 20px;
     min-height: 32px;
 }
 
@@ -253,7 +253,7 @@ a.reservation-data-update {
 }
 
 .groupListTime {
-    width:300px !important; 
+    width:300px !important;
     float:left;
     text-align: center;
 }
@@ -266,7 +266,7 @@ div.error {
 }
 
 .reservations-by-month .reservation-data {
-     float:none;   
+     float:none;
      width: 100%;
 }
 
@@ -276,7 +276,7 @@ div.error {
 }
 
 .reservation-data {
-    line-height: 1.35em;   
+    line-height: 1.35em;
 }
 
 .reservation-data span.label {
@@ -289,14 +289,14 @@ div.error {
 
 .reservation-list .block-title {
     font-size: 1em;
-    font-weight: bold;   
+    font-weight: bold;
     color: #222;
     padding-top: 15px;
     padding-bottom: 1px;
 }
 
 .reservation-data {
-    padding-bottom: 5px;    
+    padding-bottom: 5px;
 }
 
 body fieldset {
@@ -314,7 +314,7 @@ body .field {
 }
 
 body .field input {
-    margin-bottom: 0.5em;   
+    margin-bottom: 0.5em;
 }
 
 body .field:last-child input {
@@ -334,24 +334,24 @@ body .enableFormTabbing fieldset {
 }
 
 body .fieldErrorBox .error {
-    margin-bottom: 5px; 
+    margin-bottom: 5px;
 }
 
 body div.error {
-    font-size: 12px;   
+    font-size: 12px;
 
     padding-left: 10px;
 }
 
 body div.field.error {
-    background-color: white;   
+    background-color: white;
     padding-left: 0;
     border: none;
 }
 
 body .portalMessage {
     font-size: 12px;
-    margin: 0 0 8px;   
+    margin: 0 0 8px;
 }
 
 
@@ -364,7 +364,7 @@ body .portalMessage {
 
 .portaltype-seantis-reservation-emailtemplate form select,
 .template-seantis\.reservation\.emailtemplate form select {
-    margin-bottom: 30px;   
+    margin-bottom: 30px;
 }
 
 
@@ -375,7 +375,7 @@ body .portalMessage {
 }
 
 .seantis-reservation-form div.field {
-    margin-bottom: 10px;   
+    margin-bottom: 10px;
 }
 
 .seantis-reservation-form .suppressVisualEditor {
@@ -405,6 +405,6 @@ body .portalMessage {
 }
 
 .reservation-exports ul ul {
-    margin-left: 0;   
+    margin-left: 0;
     margin-top: 0.5em;
 }
