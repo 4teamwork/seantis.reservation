@@ -258,13 +258,6 @@ a.reservation-data-update {
     text-align: center;
 }
 
-div.error {
-    background-color: #FDC;
-    border: 1px solid red;
-    padding: 4px 4px;
-    font-size: 10px;
-}
-
 .reservations-by-month .reservation-data {
      float:none;
      width: 100%;
@@ -334,19 +327,8 @@ body .enableFormTabbing fieldset {
 }
 
 body .fieldErrorBox .error {
-    margin-bottom: 5px;
-}
-
-body div.error {
-    font-size: 12px;
-
-    padding-left: 10px;
-}
-
-body div.field.error {
-    background-color: white;
-    padding-left: 0;
-    border: none;
+  margin-bottom: 5px;
+  font-size: 11px;
 }
 
 body .portalMessage {
