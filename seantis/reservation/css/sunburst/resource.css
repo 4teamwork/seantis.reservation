@@ -326,9 +326,8 @@ body .enableFormTabbing fieldset {
     padding: 0 0 10px 2px;
 }
 
-body .fieldErrorBox .error {
+body .fieldErrorBox {
   margin-bottom: 5px;
-  font-size: 11px;
 }
 
 body .portalMessage {
