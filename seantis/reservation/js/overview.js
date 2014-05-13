@@ -86,6 +86,11 @@ var CalendarDays = function (options) {
 (function($) {
     $(document).ready(function() {
 
+        $('.groupclickable').click(function(e) {
+            window.location = $(this).find('a').attr('href');
+            e.preventDefault();
+        });
+
         if (_.isUndefined(seantis.overview))
             return;
 
@@ -156,11 +161,6 @@ var CalendarDays = function (options) {
         directoryResult.mouseleave(function() {
             var element = $('.' + $(this).attr('id'));
             highlight_group(element, false);
-        });
-
-        $('.groupclickable').click(function(e) {
-            window.location = $(this).find('a').attr('href');
-            e.preventDefault();
         });
 
         var options = {};

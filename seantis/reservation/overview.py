@@ -53,6 +53,9 @@ class Overviewlet(grok.Viewlet):
         return json.dumps(options)
 
     def render(self):
+        # this viewlet has been disabled for performance reasons.
+        return ''
+
         if not IOverview.providedBy(self.view):
             return ''
 
