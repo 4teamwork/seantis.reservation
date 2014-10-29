@@ -410,3 +410,11 @@ body .portalMessage {
     margin-left: 0;   
     margin-top: 0.5em;
 }
+
+div.rioccurrences a.rrule {
+  margin-top: 0px !important;
+}
+
+div.riform {
+  font-size: 90% !important;
+}
