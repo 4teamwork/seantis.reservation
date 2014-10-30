@@ -53,7 +53,16 @@ class JSONEncodedDict(TypeDecorator):
     impl = TEXT
 
     def process_bind_param(self, value, dialect):
-        if value is not None:
+        """This function is called to when a bound parameter value needs to be
+        converted.
+
+        This happens when setting column values, but also for sql-statements
+        like SELECT.
+
+        We convert dicts to serialzed json objects but leave all other types
+        alone.
+        """
+        if isinstance(value, dict):
             value = json.dumps(value, cls=utils.UserFormDataEncoder)
 
         return value
