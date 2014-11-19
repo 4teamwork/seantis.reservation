@@ -634,7 +634,8 @@ template_revoke_variables = template_variables + _(
 
 reservations_template_variables = _(
     u'May contain the following template variable:<br>'
-    u'%(reservations)s - list of reservations'
+    u'%(reservations)s - list of reservations<br>'
+    u'%(quota)s - amount of reservations'
 )
 
 

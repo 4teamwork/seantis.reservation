@@ -5,6 +5,9 @@ Changelog
 1.1 (unreleased)
 ----------------
 
+- Add quota paramter to reservations_template_variables.
+  [mathias.leimgruber]
+
 - Fix problem of different styles in error messages and inline error messages.
   [Julian Infanger]
 

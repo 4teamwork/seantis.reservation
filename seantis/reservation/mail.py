@@ -349,7 +349,6 @@ class ReservationMail(ReservationDataView, ReservationUrls):
 
         self.reservation = reservation
         self.resource = resource
-
         for k, v in kwargs.items():
             if hasattr(self, k):
                 setattr(self, k, v)
@@ -362,6 +361,10 @@ class ReservationMail(ReservationDataView, ReservationUrls):
         # title of the resource
         if is_needed('resource'):
             p['resource'] = utils.get_resource_title(resource)
+
+        # quota
+        if is_needed('quota'):
+            p['quota'] = unicode(reservation.quota)
 
         # reservation email
         if is_needed('reservation_mail'):
